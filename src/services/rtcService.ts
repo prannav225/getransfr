@@ -7,6 +7,7 @@ export class RTCService {
     private dataChannels: Map<string, RTCDataChannel> = new Map();
     private chunks: Map<string, Uint8Array[]> = new Map();
     private metadata: Map<string, any> = new Map();
+    private static MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB limit
 
     constructor() {
         socket.on('rtc-offer', async ({ from, offer }) => {
@@ -176,6 +177,16 @@ export class RTCService {
 
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
         let sentSize = 0;
+
+
+        if (totalSize > RTCService.MAX_FILE_SIZE) {
+            window.dispatchEvent(new CustomEvent('file-transfer-error', {
+                detail: { message: 'Total file size exceeds the 2GB limit.' }
+            }));
+            throw new Error('File size limit exceeded');
+        }
+
+        await this.initiateTransfer(peerId);
 
         try {
             // Send metadata and wait for acceptance
