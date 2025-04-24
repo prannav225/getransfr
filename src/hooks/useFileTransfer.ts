@@ -22,7 +22,7 @@ export function useFileTransfer() {
 
     try {
       const cancel = await rtcService.sendFiles(
-        targetDevice.socketId, // Use socketId instead of id
+        targetDevice.socketId,
         selectedFiles,
         {
           onProgress: setProgress,
@@ -37,7 +37,6 @@ export function useFileTransfer() {
             setIsSending(false);
             setProgress(0);
             setCancelTransfer(null);
-            alert('File transfer failed. Please try again.');
           },
           onCancel: () => {
             setIsSending(false);
