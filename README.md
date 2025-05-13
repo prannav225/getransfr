@@ -9,6 +9,10 @@ A modern React-based client for local file sharing with a sleek UI and real-time
 - ⚡ Real-time device detection
 - 📦 Multiple file transfer support
 - 💫 Smooth animations and transitions
+- 🔒 Peer-to-peer file transfer using WebRTC
+- 📁 Drag and drop file upload
+- 🚀 Progress tracking for file transfers
+- 🌓 System theme detection
 
 ## Tech Stack
 
@@ -19,6 +23,9 @@ A modern React-based client for local file sharing with a sleek UI and real-time
 - Lucide React Icons
 - DiceBear Avatars
 - JSZip
+- WebRTC
+- Vite
+- React Hot Toast
 
 ## Getting Started
 
