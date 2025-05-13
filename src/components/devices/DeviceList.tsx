@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Users } from 'lucide-react';
 import { Device } from '@/types/device';
+import toast from 'react-hot-toast';
 
 interface DeviceListProps {
   currentDevice: Device | null;
@@ -16,16 +18,21 @@ export function DeviceList({
   selectedFiles, 
   isSending 
 }: DeviceListProps) {
-  const filteredDevices = connectedDevices.filter(device => device.id !== currentDevice?.id);
-
   const handleSendClick = async (device: Device) => {
+    if (selectedFiles.length === 0) {
+      toast.error('Please select files to send');
+      return;
+    }
+    
     try {
       await onSendFiles(device);
     } catch (error) {
-      console.error('Failed to send files:', error);
-      alert('Failed to establish connection. Please try again.');
+      toast.error('Failed to establish connection');
     }
   };
+
+  const filteredDevices = connectedDevices.filter(device => device.id !== currentDevice?.id);
+
 
   return (
     <div className="bg-gradient-card-light dark:bg-gradient-card-dark backdrop-blur-sm rounded-2xl shadow-soft dark:shadow-soft-dark border border-white/10 dark:border-white/5 p-6">
