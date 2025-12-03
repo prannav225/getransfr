@@ -14,27 +14,30 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        oswald: ['"Oswald"', 'sans-serif'],
+      },
       colors: {
         dropmate: {
-          // Primary Brand Color
+          // Primary Brand Color - Vibrant Blue
           primary: {
-            DEFAULT: '#6366F1',
-            dark: '#818CF8',
+            DEFAULT: '#3B82F6',
+            dark: '#60A5FA',
           },
           // Background Base
           bg: {
             DEFAULT: '#F4F4F5',
-            dark: '#18181B',
+            dark: '#101010',
           },
           // Text Colors
           text: {
             primary: {
               DEFAULT: '#111827',
-              dark: '#F9FAFB',
+              dark: '#FFFFFF',
             },
             muted: {
               DEFAULT: '#6B7280',
-              dark: '#A1A1AA',
+              dark: '#9CA3AF',
             },
           },
           // Accent Colors
@@ -47,23 +50,27 @@ module.exports = {
               DEFAULT: '#F472B6',
               dark: '#FB7185',
             },
+            blue: {
+              DEFAULT: '#3B82F6',
+              dark: '#60A5FA',
+            },
           },
           // Card Background
           card: {
             DEFAULT: '#FFFFFF',
-            dark: '#27272A',
+            dark: '#1A1A1A',
           },
           // Border Colors
           border: {
             DEFAULT: '#E4E4E7',
-            dark: '#3F3F46',
+            dark: '#2A2A2A',
           },
         },
       },
       backgroundImage: {
-        'gradient-primary': 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
+        'gradient-primary': 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
         'gradient-bg-light': 'radial-gradient(circle at top right, #F4F4F5 0%, #E4E4E7 100%)',
-        'gradient-bg-dark': 'radial-gradient(circle at top right, #1E1B4B 0%, #18181B 100%)',
+        'gradient-bg-dark': 'linear-gradient(180deg, #0A0A0A 0%, #0A0A0A 100%)',
         'gradient-card-light': 'linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.9) 100%)',
         'gradient-card-dark': 'linear-gradient(135deg, rgba(39,39,42,0.4) 0%, rgba(39,39,42,0.6) 100%)',
         'gradient-accent': 'linear-gradient(135deg, #818CF8 0%, #6366F1 100%)',
