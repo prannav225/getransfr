@@ -60,7 +60,7 @@ npm run build
 Create a `.env` file in the client directory:
 
 ```env
-VITE_SERVER_URL=http://localhost:3000
+VITE_SERVER_URL=http://localhost:5000
 ```
 
 ## Project Structure
