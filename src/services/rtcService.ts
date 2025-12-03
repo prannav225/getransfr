@@ -1,299 +1,257 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FileProgress } from "./p2pService";
 import { socket } from "./socket";
+import RTCConnectionManager from "./rtc/RTCConnectionManager";
+import RTCDataChannelManager from "./rtc/RTCDataChannelManager";
+import RTCFileTransferManager from "./rtc/RTCFileTransferManager";
 
 export class RTCService {
-    private peerConnections: Map<string, RTCPeerConnection> = new Map();
-    private dataChannels: Map<string, RTCDataChannel> = new Map();
-    private chunks: Map<string, Uint8Array[]> = new Map();
-    private metadata: Map<string, any> = new Map();
-    private static MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB limit
+    private connectionManager: RTCConnectionManager;
+    private dataChannelManager: RTCDataChannelManager;
+    private fileTransferManager: RTCFileTransferManager;
+    private transferRequests: Map<string, { files: any[], callbacks: FileProgress }> = new Map();
 
     constructor() {
+        this.connectionManager = new RTCConnectionManager(socket);
+        this.dataChannelManager = new RTCDataChannelManager();
+        this.fileTransferManager = new RTCFileTransferManager();
+
+        this.setupSocketListeners();
+        this.setupWindowListeners();
+    }
+
+    private setupSocketListeners(): void {
         socket.on('rtc-offer', async ({ from, offer }) => {
-            const peerConnection = this.createPeerConnection(from);
-            await peerConnection.setRemoteDescription(offer);
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.emit('rtc-answer', { to: from, answer });
+            try {
+                const peerConnection = this.connectionManager.createPeerConnection(from);
+
+                peerConnection.ondatachannel = (event) => {
+                    const dataChannel = event.channel;
+                    this.setupDataChannel(from, dataChannel);
+                };
+
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                socket.emit('rtc-answer', { to: from, answer });
+            } catch (error) {
+                console.error('Error handling RTC offer:', error);
+            }
         });
 
         socket.on('rtc-answer', async ({ from, answer }) => {
-            const peerConnection = this.peerConnections.get(from);
-            if (peerConnection) {
-                await peerConnection.setRemoteDescription(answer);
+            try {
+                const peerConnection = this.connectionManager.getPeerConnection(from);
+                if (peerConnection) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                }
+            } catch (error) {
+                console.error('Error handling RTC answer:', error);
             }
         });
 
         socket.on('rtc-ice-candidate', async ({ from, candidate }) => {
-            const peerConnection = this.peerConnections.get(from);
-            if (peerConnection) {
-                await peerConnection.addIceCandidate(candidate);
+            try {
+                const peerConnection = this.connectionManager.getPeerConnection(from);
+                if (peerConnection) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+            } catch (error) {
+                console.error('Error adding ICE candidate:', error);
             }
         });
-        window.addEventListener('file-transfer-cancel', ((e: CustomEvent) => {
-            const { peerId } = e.detail;
-            const dataChannel = this.dataChannels.get(peerId);
-            if (dataChannel) {
-                dataChannel.send(JSON.stringify({ type: 'cancel' }));
-                this.destroy(peerId);
-            }
+    }
+
+    private setupWindowListeners(): void {
+        window.addEventListener('file-transfer-cancel', ((event: CustomEvent) => {
+            const { peerId } = event.detail;
+            this.cancelTransfer(peerId);
         }) as EventListener);
     }
 
-    private createPeerConnection(peerId: string): RTCPeerConnection {
-        const peerConnection = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:global.stun.twilio.com:3478' }
-            ]
-        });
-
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket.emit('rtc-ice-candidate', {
-                    to: peerId,
-                    candidate: event.candidate
-                });
-            }
-        };
-
-        peerConnection.ondatachannel = (event) => {
-            const dataChannel = event.channel;
-            this.setupDataChannel(peerId, dataChannel);
-            this.dataChannels.set(peerId, dataChannel);
-        };
-
-        this.peerConnections.set(peerId, peerConnection);
-        return peerConnection;
-    }
-
-    private setupDataChannel(peerId: string, dataChannel: RTCDataChannel) {
+    private setupDataChannel(peerId: string, dataChannel: RTCDataChannel): void {
         dataChannel.binaryType = 'arraybuffer';
-        let totalSize = 0;
-        let receivedSize = 0;
-        let currentProgress = 0;
+        this.dataChannelManager.addDataChannel(peerId, dataChannel);
 
-        dataChannel.onmessage = async (event) => {
-            if (typeof event.data === 'string') {
-                const message = JSON.parse(event.data);
-                if (message.type === 'metadata') {
-                    // Dispatch event for transfer request
-                    const accepted = await new Promise<boolean>(resolve => {
-                        window.dispatchEvent(new CustomEvent('file-transfer-request', {
-                            detail: {
-                                peerId,
-                                files: message.files,
-                                accept: () => resolve(true),
-                                decline: () => resolve(false)
-                            }
-                        }));
-                    });
-
-                    if (accepted) {
-                        this.metadata.set(peerId, message.files);
-                        this.chunks.set(peerId, []);
-                        totalSize = message.files.reduce((acc: number, file: any) => acc + file.size, 0);
-                        window.dispatchEvent(new CustomEvent('file-transfer-start', {
-                            detail: { peerId, totalSize }
-                        }));
-                        // Send acceptance
-                        dataChannel.send(JSON.stringify({ type: 'accept' }));
-                    } else {
-                        dataChannel.send(JSON.stringify({ type: 'decline' }));
-                        this.destroy(peerId);
-                        return;
-                    }
-                } else if (message.type === 'file-complete') {
-                    this.saveReceivedFile(peerId, message.name);
-                } else if (message.type === 'cancel') {
-                    // Notify UI about cancellation
-                    window.dispatchEvent(new CustomEvent('file-transfer-cancelled', {
-                        detail: { peerId }
+        dataChannel.onopen = () => {
+            const pendingTransfer = this.transferRequests.get(peerId);
+            if (pendingTransfer) {
+                try {
+                    dataChannel.send(JSON.stringify({
+                        type: 'metadata',
+                        files: pendingTransfer.files.map(f => ({ name: f.name, size: f.size, type: f.type }))
                     }));
-                    // Clean up connection
-                    this.destroy(peerId);
-                }
-            } else {
-                const chunks = this.chunks.get(peerId);
-                if (chunks) {
-                    const chunk = new Uint8Array(event.data);
-                    chunks.push(chunk);
-                    receivedSize += chunk.byteLength;
-
-                    // Update progress
-                    const newProgress = Math.round((receivedSize / totalSize) * 100);
-                    if (newProgress !== currentProgress) {
-                        currentProgress = newProgress;
-                        window.dispatchEvent(new CustomEvent('file-transfer-progress', {
-                            detail: { peerId, progress: currentProgress }
-                        }));
-                    }
+                } catch (err) {
+                    console.error('Failed to send metadata:', err);
                 }
             }
-        };
-
-        // Add error and close handlers
-        dataChannel.onerror = () => {
-            window.dispatchEvent(new CustomEvent('file-transfer-cancelled', {
-                detail: { peerId }
-            }));
-            this.destroy(peerId);
         };
 
         dataChannel.onclose = () => {
-            window.dispatchEvent(new CustomEvent('file-transfer-cancelled', {
-                detail: { peerId }
-            }));
-            this.destroy(peerId);
+            this.cleanupPeer(peerId);
+        };
+
+        dataChannel.onerror = (error) => {
+            console.error('Data channel error:', error);
+            this.cleanupPeer(peerId);
+        };
+
+        dataChannel.onmessage = (event) => {
+            this.handleDataChannelMessage(peerId, event);
         };
     }
 
-    async sendFiles(peerId: string, files: File[], callbacks: FileProgress): Promise<() => void> {
-        await this.initiateTransfer(peerId);
-        const dataChannel = this.dataChannels.get(peerId);
-        if (!dataChannel) throw new Error('No data channel established');
-
-        // Wait for data channel to open
-        if (dataChannel.readyState !== 'open') {
-            await new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Connection timeout')), 10000);
-                dataChannel.onopen = () => {
-                    clearTimeout(timeout);
-                    resolve();
-                };
-            });
-        }
-
-        const cancel = () => {
+    private handleDataChannelMessage(peerId: string, event: MessageEvent): void {
+        if (typeof event.data === 'string') {
             try {
-                dataChannel.send(JSON.stringify({ type: 'cancel' }));
-            } catch (e) {
-                console.error('Error sending cancel message:', e);
+                const message = JSON.parse(event.data);
+
+                switch (message.type) {
+                    case 'metadata':
+                        this.handleMetadataMessage(peerId, message.files);
+                        break;
+                    case 'file-complete':
+                        this.fileTransferManager.saveFile(peerId, message.name);
+                        break;
+                    case 'accept':
+                        this.handleTransferAccepted(peerId);
+                        break;
+                    case 'decline':
+                        this.handleTransferDeclined(peerId);
+                        break;
+                    case 'cancel':
+                        this.handleTransferCancelled(peerId);
+                        break;
+                }
+            } catch (error) {
+                console.error('Error parsing message:', error);
             }
-            this.destroy(peerId);
-            callbacks.onCancel();
-        };
+        } else {
+            this.fileTransferManager.addChunk(peerId, event.data);
+        }
+    }
 
-        const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-        let sentSize = 0;
+    private async handleMetadataMessage(peerId: string, files: any[]): Promise<void> {
+        const accepted = await new Promise<boolean>(resolve => {
+            const event = new CustomEvent('file-transfer-request', {
+                detail: {
+                    peerId,
+                    files,
+                    accept: () => resolve(true),
+                    decline: () => resolve(false)
+                }
+            });
+            window.dispatchEvent(event);
+        });
 
-
-        if (totalSize > RTCService.MAX_FILE_SIZE) {
-            window.dispatchEvent(new CustomEvent('file-transfer-error', {
-                detail: { message: 'Total file size exceeds the 2GB limit.' }
-            }));
-            throw new Error('File size limit exceeded');
+        const dataChannel = this.dataChannelManager.getDataChannel(peerId);
+        if (!dataChannel) {
+            return;
         }
 
-        await this.initiateTransfer(peerId);
+        if (accepted) {
+            await this.fileTransferManager.initializeReceiver(peerId, files);
+            dataChannel.send(JSON.stringify({ type: 'accept' }));
+        } else {
+            dataChannel.send(JSON.stringify({ type: 'decline' }));
+            this.cleanupPeer(peerId);
+        }
+    }
 
+    private handleTransferAccepted(peerId: string): void {
+        const pendingTransfer = this.transferRequests.get(peerId);
+        if (pendingTransfer) {
+            this.startFileTransfer(peerId, pendingTransfer.files, pendingTransfer.callbacks);
+            this.transferRequests.delete(peerId);
+        }
+    }
+
+    private handleTransferDeclined(peerId: string): void {
+        const pendingTransfer = this.transferRequests.get(peerId);
+        if (pendingTransfer) {
+            pendingTransfer.callbacks.onCancel();
+            this.transferRequests.delete(peerId);
+        }
+        this.cleanupPeer(peerId);
+    }
+
+    private handleTransferCancelled(peerId: string): void {
+        const pendingTransfer = this.transferRequests.get(peerId);
+        if (pendingTransfer) {
+            pendingTransfer.callbacks.onCancel();
+            this.transferRequests.delete(peerId);
+        }
+        this.cleanupPeer(peerId);
+    }
+
+    private async startFileTransfer(peerId: string, files: File[], callbacks: FileProgress): Promise<void> {
         try {
-            // Send metadata and wait for acceptance
-            dataChannel.send(JSON.stringify({
-                type: 'metadata',
-                files: files.map(f => ({ name: f.name, size: f.size, type: f.type }))
-            }));
-
-            const accepted = await new Promise<boolean>((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Request timeout')), 30000);
-
-                const handler = (event: MessageEvent) => {
-                    const message = JSON.parse(event.data);
-                    if (message.type === 'accept') {
-                        clearTimeout(timeout);
-                        resolve(true);
-                    } else if (message.type === 'decline') {
-                        clearTimeout(timeout);
-                        resolve(false);
-                    }
-                };
-
-                dataChannel.addEventListener('message', handler);
-            });
-
-            if (!accepted) {
-                throw new Error('Transfer declined');
+            const dataChannel = this.dataChannelManager.getDataChannel(peerId);
+            if (!dataChannel) {
+                throw new Error('No data channel available');
             }
+
+            this.fileTransferManager.initializeSender(peerId, files, callbacks);
 
             for (const file of files) {
-                const buffer = await file.arrayBuffer();
-                const chunkSize = 16384;
-                const chunks = Math.ceil(buffer.byteLength / chunkSize);
-
-                for (let i = 0; i < chunks; i++) {
-                    const chunk = buffer.slice(i * chunkSize, (i + 1) * chunkSize);
-                    dataChannel.send(chunk);
-
-                    sentSize += chunk.byteLength;
-                    callbacks.onProgress(Math.round((sentSize / totalSize) * 100));
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                }
-
-                dataChannel.send(JSON.stringify({
-                    type: 'file-complete',
-                    name: file.name
-                }));
+                await this.fileTransferManager.sendFile(peerId, file, dataChannel);
             }
 
             callbacks.onComplete();
         } catch (error) {
-            window.dispatchEvent(new CustomEvent('file-transfer-error', {
-                detail: { message: 'File transfer failed. Please try again.' }
-            }));
+            console.error('Error during file transfer:', error);
             callbacks.onError(error as Error);
-            this.destroy(peerId);
+            this.cleanupPeer(peerId);
+        }
+    }
+
+    async sendFiles(peerId: string, files: File[], callbacks: FileProgress): Promise<() => void> {
+        try {
+            const peerConnection = this.connectionManager.createPeerConnection(peerId);
+
+            const dataChannel = peerConnection.createDataChannel('fileTransfer', {
+                ordered: true,
+                maxRetransmits: 30
+            });
+
+            this.setupDataChannel(peerId, dataChannel);
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            socket.emit('rtc-offer', { to: peerId, offer });
+
+            this.transferRequests.set(peerId, { files, callbacks });
+
+            return () => this.cancelTransfer(peerId);
+        } catch (error) {
+            console.error('Error initiating file transfer:', error);
+            callbacks.onError(error as Error);
             return () => { };
         }
-
-        return cancel; // Return the cancel function instead of destroy
     }
 
-    private saveReceivedFile(peerId: string, fileName: string) {
-        const chunks = this.chunks.get(peerId);
-        const metadata = this.metadata.get(peerId);
+    private cancelTransfer(peerId: string): void {
+        const dataChannel = this.dataChannelManager.getDataChannel(peerId);
+        if (dataChannel && dataChannel.readyState === 'open') {
+            dataChannel.send(JSON.stringify({ type: 'cancel' }));
+        }
 
-        if (!chunks || !metadata) return;
+        const pendingTransfer = this.transferRequests.get(peerId);
+        if (pendingTransfer) {
+            pendingTransfer.callbacks.onCancel();
+            this.transferRequests.delete(peerId);
+        }
 
-        const blob = new Blob(chunks, {
-            type: metadata[0]?.type || 'application/octet-stream'
-        });
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        this.chunks.delete(peerId);
+        this.cleanupPeer(peerId);
     }
 
-    async initiateTransfer(peerId: string): Promise<void> {
-        const peerConnection = this.createPeerConnection(peerId);
-        const dataChannel = peerConnection.createDataChannel('fileTransfer');
-        this.setupDataChannel(peerId, dataChannel);
-        this.dataChannels.set(peerId, dataChannel);
-
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        socket.emit('rtc-offer', { to: peerId, offer });
-    }
-
-    destroy(peerId: string) {
-        const dataChannel = this.dataChannels.get(peerId);
-        const peerConnection = this.peerConnections.get(peerId);
-
-        dataChannel?.close();
-        peerConnection?.close();
-
-        this.dataChannels.delete(peerId);
-        this.peerConnections.delete(peerId);
-        this.chunks.delete(peerId);
-        this.metadata.delete(peerId);
+    private cleanupPeer(peerId: string): void {
+        this.connectionManager.closePeerConnection(peerId);
+        this.dataChannelManager.closeDataChannel(peerId);
+        this.fileTransferManager.cleanup(peerId);
     }
 }
 
-export const rtcService = new RTCService();
+export default new RTCService();
