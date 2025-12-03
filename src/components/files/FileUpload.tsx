@@ -40,12 +40,12 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-  
+
     if (e.dataTransfer.files) {
       const fileList = Array.from(e.dataTransfer.files);
       const validFiles = fileList.filter(file => file.size > 0);
-      
-      if(validFiles.length > 0) {
+
+      if (validFiles.length > 0) {
         const event = {
           target: {
             files: Object.assign([], validFiles) // Convert validFiles array to FileList-like object
@@ -57,18 +57,19 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
   }
 
   return (
-    <div className="bg-gradient-card-light dark:bg-gradient-card-dark backdrop-blur-sm rounded-2xl shadow-soft dark:shadow-soft-dark border border-white/10 dark:border-white/5 p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Upload className="w-5 h-5 text-dropmate-primary dark:text-dropmate-primary-dark" />
-        <h2 className="text-xl font-medium text-dropmate-text-primary dark:text-dropmate-text-primary-dark">Share Files</h2>
+    <div className="relative overflow-hidden backdrop-blur-xl bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/10 rounded-3xl shadow-2xl p-8 transition-all duration-300 h-full flex flex-col">
+      <div className="flex items-center gap-3 mb-8 relative z-10">
+        <div className="p-2 rounded-full bg-dropmate-primary/10 dark:bg-dropmate-primary-dark/10">
+          <Upload className="w-5 h-5 text-dropmate-primary dark:text-dropmate-primary-dark" />
+        </div>
+        <h2 className="text-xl font-semibold text-dropmate-text-primary dark:text-dropmate-text-primary-dark">Share Files</h2>
       </div>
 
       <div
-        className={`border-2 border-dashed transition-all duration-300 ${
-          isDragging 
-            ? 'border-dropmate-primary dark:border-dropmate-primary-dark bg-dropmate-primary/5 dark:bg-dropmate-primary-dark/5 scale-102' 
-            : 'border-dropmate-primary/20 dark:border-dropmate-primary-dark/20'
-        } rounded-xl p-8 text-center`}
+        className={`flex-1 relative border-2 border-dashed transition-all duration-500 ease-out group ${isDragging
+            ? 'border-dropmate-primary dark:border-dropmate-primary-dark bg-dropmate-primary/10 dark:bg-dropmate-primary-dark/10 scale-[1.02]'
+            : 'border-white/30 dark:border-white/10 hover:border-dropmate-primary/50 dark:hover:border-dropmate-primary-dark/50 hover:bg-white/5'
+          } rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[300px]`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -83,37 +84,43 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
         />
         <label
           htmlFor="file-upload"
-          className="cursor-pointer block"
+          className="cursor-pointer w-full h-full flex flex-col items-center justify-center"
         >
-          <div className="mb-3">
-            <Upload className="w-10 h-10 text-dropmate-primary/40 dark:text-dropmate-primary-dark/40 mx-auto" />
+          <div className={`mb-6 p-6 rounded-full bg-gradient-to-br from-dropmate-primary/20 to-dropmate-accent-pink/20 dark:from-dropmate-primary/10 dark:to-dropmate-accent-pink/10 transition-all duration-500 ${!isDragging && 'animate-breathe'}`}>
+            <Upload className="w-12 h-12 text-dropmate-primary dark:text-dropmate-primary-dark" />
           </div>
-          <p className="text-sm text-dropmate-text-muted/70 dark:text-dropmate-text-muted-dark/70 mb-1">
-            {isDragging ? 'Drop files here' : 'Drop files here or click to select'}
+          <p className="text-lg font-medium text-dropmate-text-primary dark:text-dropmate-text-primary-dark mb-2">
+            {isDragging ? 'Drop files here' : 'Drop files here'}
+          </p>
+          <p className="text-sm text-dropmate-text-muted dark:text-dropmate-text-muted-dark">
+            or click to browse
           </p>
         </label>
       </div>
 
       {selectedFiles.length > 0 && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-6 space-y-4 relative z-10">
           {previewUrl && (
-            <div className="relative rounded-lg overflow-hidden">
+            <div className="relative rounded-2xl overflow-hidden shadow-lg ring-1 ring-white/20">
               <img src={previewUrl} alt="Preview" className="w-full h-48 object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             </div>
           )}
-          <div className="bg-black/5 dark:bg-white/5 rounded-xl p-4">
+          <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/20 dark:border-white/5">
             {selectedFiles.map((file, index) => (
-              <div key={`${file.name}-${index}`} className="flex items-center gap-3 py-2">
-                <FileTypeIcon mimeType={file.type} className="w-5 h-5" />
+              <div key={`${file.name}-${index}`} className="flex items-center gap-4 py-3 first:pt-1 last:pb-1">
+                <div className="p-2 rounded-lg bg-white/50 dark:bg-white/10">
+                  <FileTypeIcon mimeType={file.type} className="w-6 h-6 text-dropmate-text-primary dark:text-dropmate-text-primary-dark" />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{file.name}</p>
-                  <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="text-sm font-medium truncate text-dropmate-text-primary dark:text-dropmate-text-primary-dark">{file.name}</p>
+                  <p className="text-xs text-dropmate-text-muted dark:text-dropmate-text-muted-dark">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
                 <button
                   onClick={() => onFileRemove(index)}
-                  className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors"
+                  className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             ))}
