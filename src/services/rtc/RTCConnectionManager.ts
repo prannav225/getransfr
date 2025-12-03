@@ -37,8 +37,8 @@ class RTCConnectionManager {
                 },
                 {
                     urls: 'turn:relay1.expressturn.com:3478',
-                    username: 'efGUPLKW6QQZQVQZF3',
-                    credential: 'uxahHEz4ZK7YzFmJ'
+                    username: import.meta.env.VITE_TURN_USERNAME || '',
+                    credential: import.meta.env.VITE_TURN_CREDENTIAL || ''
                 }
             ],
             iceCandidatePoolSize: 10,

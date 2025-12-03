@@ -55,15 +55,25 @@ export function DeviceList({
       </div>
 
       {uniqueDevices.length === 0 ? (
-        <div className="text-center py-16 relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-dropmate-primary/5 rounded-full animate-radar" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-dropmate-primary/5 rounded-full animate-radar delay-700" />
+        <div className="text-center py-16">
+          <div className="flex justify-center mb-4">
+            <div className="relative">
+              {/* Radar animation circles - centered on the icon */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 bg-dropmate-primary/5 rounded-full animate-radar" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 bg-dropmate-primary/5 rounded-full animate-radar" style={{ animationDelay: '1s' }} />
+              </div>
 
-          <div className="relative z-10 bg-white/50 dark:bg-black/50 p-4 rounded-full inline-block mb-4 backdrop-blur-sm shadow-lg">
-            <Users className="w-8 h-8 text-dropmate-primary/50 dark:text-dropmate-primary-dark/50" />
+              {/* Icon container */}
+              <div className="relative z-10 bg-white/50 dark:bg-black/50 p-4 rounded-full backdrop-blur-sm shadow-lg">
+                <Users className="w-8 h-8 text-dropmate-primary/50 dark:text-dropmate-primary-dark/50" />
+              </div>
+            </div>
           </div>
-          <p className="text-sm font-medium text-dropmate-text-muted dark:text-dropmate-text-muted-dark relative z-10">Scanning for devices...</p>
-          <p className="text-xs text-dropmate-text-muted/50 dark:text-dropmate-text-muted-dark/50 mt-2 relative z-10">
+          <p className="text-sm font-medium text-dropmate-text-muted dark:text-dropmate-text-muted-dark">Scanning for devices...</p>
+          <p className="text-xs text-dropmate-text-muted/50 dark:text-dropmate-text-muted-dark/50 mt-2">
             Ensure devices are on the same network
           </p>
         </div>

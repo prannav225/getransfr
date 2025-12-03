@@ -67,8 +67,8 @@ export function Header({ currentDevice }: HeaderProps) {
     <div className="sticky top-4 z-40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 p-4 rounded-2xl backdrop-blur-xl bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/10 shadow-lg transition-all duration-300">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-xl bg-gradient-to-br from-dropmate-primary to-dropmate-accent-pink shadow-lg shadow-dropmate-primary/20">
-          <h1 className="text-xl font-bold text-white tracking-tight">
-            DropMate
+          <h1 className="text-xl font-bold text-white tracking-tight font-oswald">
+            Getransfr
           </h1>
         </div>
         <button
