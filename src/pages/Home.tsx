@@ -6,10 +6,9 @@ import { useDevices } from '@/hooks/useDevices';
 import { useFileTransfer } from '@/hooks/useFileTransfer';
 import { TransferProgress } from '../components/files/TransferProgress';
 import { FileTransferModal } from '@/components/modals/FileTransferModal';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import toast from 'react-hot-toast';
-import { Device } from '@/types/device';
 
 export function Home() {
     const { currentDevice, connectedDevices } = useDevices();

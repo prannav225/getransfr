@@ -11,7 +11,7 @@ export class FileChunker {
     }
   }
 
-  static async assembleChunks(chunks: Blob[], totalSize: number): Promise<Blob> {
+  static async assembleChunks(chunks: Blob[]): Promise<Blob> {
     return new Blob(chunks, { type: 'application/octet-stream' });
   }
 }
