@@ -131,7 +131,7 @@ export function Home() {
                 {/* Mobile View - Visible only on small screens */}
                 <motion.div 
                     className="block lg:hidden h-full touch-pan-y select-none transform-gpu"
-                    onPanEnd={(e, { offset, velocity }) => {
+                    onPanEnd={(_e, { offset }) => {
                         // Swipe Left (Go to Receive)
                         if (offset.x < -50 && activeTab === 'send') {
                             setActiveTab('receive');
