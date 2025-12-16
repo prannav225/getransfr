@@ -15,97 +15,116 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        oswald: ['"Oswald"', 'sans-serif'],
+        sans: ['"Outfit"', 'sans-serif'],
+        outfit: ['"Outfit"', 'sans-serif'],
       },
       colors: {
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        // Keeping legacy "dropmate" for compatibility but re-mapping to new system over time if needed
         dropmate: {
-          // Primary Brand Color - Vibrant Blue
           primary: {
-            DEFAULT: '#3B82F6',
-            dark: '#60A5FA',
+            DEFAULT: '#4F46E5', // Indigo 600
+            dark: '#818CF8',    // Indigo 400
           },
-          // Background Base
           bg: {
-            DEFAULT: '#F4F4F5',
-            dark: '#101010',
+            DEFAULT: '#F8FAFC',
+            dark: '#020617',
           },
-          // Text Colors
           text: {
             primary: {
-              DEFAULT: '#111827',
-              dark: '#FFFFFF',
+              DEFAULT: '#0F172A',
+              dark: '#F1F5F9',
             },
             muted: {
-              DEFAULT: '#6B7280',
-              dark: '#9CA3AF',
+              DEFAULT: '#64748B',
+              dark: '#94A3B8',
             },
-          },
-          // Accent Colors
-          accent: {
-            mint: {
-              DEFAULT: '#2DD4BF',
-              dark: '#5EEAD4',
-            },
-            pink: {
-              DEFAULT: '#F472B6',
-              dark: '#FB7185',
-            },
-            blue: {
-              DEFAULT: '#3B82F6',
-              dark: '#60A5FA',
-            },
-          },
-          // Card Background
-          card: {
-            DEFAULT: '#FFFFFF',
-            dark: '#1A1A1A',
-          },
-          // Border Colors
-          border: {
-            DEFAULT: '#E4E4E7',
-            dark: '#2A2A2A',
           },
         },
       },
       backgroundImage: {
-        'gradient-primary': 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
-        'gradient-bg-light': 'radial-gradient(circle at top right, #F4F4F5 0%, #E4E4E7 100%)',
-        'gradient-bg-dark': 'linear-gradient(180deg, #0A0A0A 0%, #0A0A0A 100%)',
-        'gradient-card-light': 'linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.9) 100%)',
-        'gradient-card-dark': 'linear-gradient(135deg, rgba(39,39,42,0.4) 0%, rgba(39,39,42,0.6) 100%)',
-        'gradient-accent': 'linear-gradient(135deg, #818CF8 0%, #6366F1 100%)',
-        'gradient-accent-hover': 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
-      },
-      boxShadow: {
-        'soft': '0 4px 20px rgba(99,102,241,0.1)',
-        'soft-dark': '0 4px 20px rgba(0,0,0,0.3)',
-        'glow': '0 0 30px rgba(99,102,241,0.3)',
-        'glow-dark': '0 0 30px rgba(99,102,241,0.15)',
-        'inner-light': 'inset 0 2px 4px rgba(0,0,0,0.05)',
-        'inner-dark': 'inset 0 2px 4px rgba(0,0,0,0.2)',
-      },
-      backdropBlur: {
-        'xs': '2px',
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'subtle-mesh': 'radial-gradient(at 0% 0%, hsl(var(--primary) / 0.1) 0, transparent 50%), radial-gradient(at 50% 0%, hsl(var(--secondary) / 0.1) 0, transparent 50%), radial-gradient(at 100% 0%, hsl(var(--accent) / 0.1) 0, transparent 50%)',
+        'glass-gradient': 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))',
+        'glass-card': 'linear-gradient(135deg, hsl(var(--card) / 0.7) 0%, hsl(var(--card) / 0.4) 100%)',
+        'glass-card-hover': 'linear-gradient(135deg, hsl(var(--card) / 0.8) 0%, hsl(var(--card) / 0.5) 100%)',
       },
       keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        pulse: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.5' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '200% 0' },
+          '100%': { backgroundPosition: '-200% 0' }
+        },
+        'spin-slow': {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
         radar: {
           '0%': { transform: 'scale(1)', opacity: '0.5' },
-          '100%': { transform: 'scale(2)', opacity: '0' },
+          '100%': { transform: 'scale(2.5)', opacity: '0' },
         },
         breathe: {
           '0%, 100%': { transform: 'scale(1)', opacity: '0.8' },
           '50%': { transform: 'scale(1.05)', opacity: '1' },
         },
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
-        }
       },
       animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        float: 'float 6s ease-in-out infinite',
+        pulse: 'pulse 3s ease-in-out infinite',
+        shimmer: 'shimmer 8s linear infinite',
+        'spin-slow': 'spin-slow 10s linear infinite',
         radar: 'radar 2s infinite linear',
         breathe: 'breathe 3s infinite ease-in-out',
-        float: 'float 6s infinite ease-in-out',
-      }
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

@@ -58,49 +58,75 @@ export function Header({ currentDevice }: HeaderProps) {
     }
   }, [currentDevice]);
 
+  useEffect(() => {
+    // Update meta theme-color for PWA/Mobile browser status bar
+    // Dark: slate-950 (#020817), Light: white (#ffffff) to ensure status bar icons turn black
+    const themeColor = isDarkMode ? '#020817' : '#ffffff';
+    
+    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+    
+    // If we found a meta tag that has a media attribute, it's one of the static ones. 
+    // We want a single authoritative tag without media queries for dynamic control.
+    if (!meta || meta.hasAttribute('media')) {
+        // Remove all existing theme-color tags (including static media ones) to start fresh
+        document.querySelectorAll('meta[name="theme-color"]').forEach(t => t.remove());
+        
+        // Create a new fresh tag
+        meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        document.head.appendChild(meta);
+    }
+    
+    meta.setAttribute('content', themeColor);
+    
+  }, [isDarkMode]);
+
   if (!mounted) {
     return <div className="h-[88px]" />; // Placeholder with same height to prevent layout shift
   }
 
 
   return (
-    <div className="sticky top-4 z-40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 p-4 rounded-2xl backdrop-blur-xl bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/10 shadow-lg transition-all duration-300">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-3">
-          <img src="/G.png" alt="Getransfr" className="w-10 h-10" />
-          <h1 className="text-xl font-bold text-dropmate-text-primary dark:text-dropmate-text-primary-dark tracking-tight font-oswald">
-            Getransfr
-          </h1>
-        </div>
-        <button
-          onClick={toggleDarkMode}
-          className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all duration-300 group"
-          aria-label="Toggle theme"
-        >
-          <div className="relative w-5 h-5">
-            <Sun className={`w-5 h-5 text-amber-400 absolute transition-all duration-500 ${isDarkMode ? 'rotate-0 opacity-100 scale-100' : 'rotate-90 opacity-0 scale-50'}`} />
-            <Moon className={`w-5 h-5 text-dropmate-primary absolute transition-all duration-500 ${!isDarkMode ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-50'}`} />
+    <div className="sticky top-2 lg:top-6 z-40 max-w-6xl mx-auto px-4 transition-all duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-[2rem] shadow-lg dark:shadow-soft-dark">
+        <div className="flex items-center justify-between w-full sm:w-auto px-2 gap-4 lg:gap-8">
+          <div className="flex items-center gap-3">
+            <img src="/G.png" alt="Getransfr" className="w-8 h-8 lg:w-9 lg:h-9 drop-shadow-sm" />
+            <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tighter font-outfit bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              Getransfr
+            </h1>
           </div>
-        </button>
+          <button
+            onClick={toggleDarkMode}
+            className="p-2.5 rounded-full bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 border border-black/5 dark:border-white/10 shadow-sm transition-all duration-300 group"
+            aria-label="Toggle theme"
+          >
+            <div className="relative w-4 h-4 lg:w-5 lg:h-5">
+              <Sun className={`w-full h-full text-amber-500 absolute transition-all duration-500 ${isDarkMode ? 'rotate-0 opacity-100 scale-100' : 'rotate-90 opacity-0 scale-50'}`} />
+              <Moon className={`w-full h-full text-primary absolute transition-all duration-500 ${!isDarkMode ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-50'}`} />
+            </div>
+          </button>
+        </div>
+        
+        {currentDevice && currentDevice.name && (
+          <div className="flex items-center gap-3 bg-white/50 dark:bg-white/5 px-4 py-2 rounded-full border border-black/5 dark:border-white/5 shadow-sm w-full sm:w-auto justify-center sm:justify-start">
+            <div className="relative">
+              <img
+                src={currentDevice?.avatar}
+                alt={currentDevice?.name}
+                className="w-6 h-6 lg:w-7 lg:h-7 rounded-full ring-2 ring-white dark:ring-white/10 shadow-sm"
+              />
+              <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 lg:w-2.5 lg:h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-black/50" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground opacity-80 hidden lg:block">Connected as</span>
+              <span className="text-xs lg:text-sm font-semibold text-foreground leading-none mt-0 lg:mt-0.5">
+                {currentDevice?.name}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
-      {currentDevice && currentDevice.name && (
-        <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-xl border border-white/10">
-          <div className="relative">
-            <img
-              src={currentDevice.avatar}
-              alt={currentDevice.name}
-              className="w-8 h-8 rounded-full ring-2 ring-white/20"
-            />
-            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-black" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-dropmate-text-muted dark:text-dropmate-text-muted-dark opacity-70">Connected as</span>
-            <span className="text-sm font-semibold text-dropmate-text-primary dark:text-dropmate-text-primary-dark leading-none">
-              {currentDevice.name}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
