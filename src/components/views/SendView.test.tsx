@@ -19,6 +19,7 @@ describe('SendView Component', () => {
         currentDevice={mockCurrentDevice}
         connectedDevices={mockDevices}
         handleSendFiles={mockHandleSendFiles}
+        onShareText={vi.fn()}
         isSending={false}
       />
     );
@@ -37,6 +38,7 @@ describe('SendView Component', () => {
         currentDevice={mockCurrentDevice}
         connectedDevices={mockDevices}
         handleSendFiles={mockHandleSendFiles}
+        onShareText={vi.fn()}
         isSending={false}
       />
     );
