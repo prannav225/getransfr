@@ -87,6 +87,17 @@ export default defineConfig({
   server: {
     host: true,
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-utils': ['socket.io-client', 'framer-motion', 'lucide-react', 'date-fns', 'jszip'],
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
