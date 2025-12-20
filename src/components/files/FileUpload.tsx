@@ -37,18 +37,56 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
 
-    if (e.dataTransfer.files) {
+    if (e.dataTransfer.items) {
+      const files: File[] = [];
+      const items = Array.from(e.dataTransfer.items);
+
+      const traverseFileTree = async (item: any, path = '') => {
+        if (item.isFile) {
+          const file = await new Promise<File>((resolve) => item.file(resolve));
+          // Manually define webkitRelativePath for the file because the File object from entry.file() doesn't have it
+          Object.defineProperty(file, 'webkitRelativePath', {
+            value: path + file.name
+          });
+          files.push(file);
+        } else if (item.isDirectory) {
+          const dirReader = item.createReader();
+          const entries = await new Promise<any[]>((resolve) => {
+            dirReader.readEntries(resolve);
+          });
+          for (const entry of entries) {
+            await traverseFileTree(entry, path + item.name + '/');
+          }
+        }
+      };
+
+      for (const item of items) {
+        const entry = item.webkitGetAsEntry();
+        if (entry) {
+          await traverseFileTree(entry);
+        }
+      }
+
+      if (files.length > 0) {
+        const event = {
+          target: {
+            files: Object.assign([], files)
+          }
+        } as unknown as React.ChangeEvent<HTMLInputElement>;
+        onFileSelect(event);
+      }
+    } else if (e.dataTransfer.files) {
       const fileList = Array.from(e.dataTransfer.files);
       const validFiles = fileList.filter(file => file.size > 0);
 
       if (validFiles.length > 0) {
         const event = {
           target: {
-            files: Object.assign([], validFiles) // Convert validFiles array to FileList-like object
+            files: Object.assign([], validFiles)
           }
         } as unknown as React.ChangeEvent<HTMLInputElement>;
         onFileSelect(event);
@@ -74,7 +112,6 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => document.getElementById('file-upload')?.click()}
       >
         <input
           type="file"
@@ -84,20 +121,43 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
           id="file-upload"
           accept="*/*"
         />
-        <label
-          htmlFor="file-upload"
+        <input
+          type="file"
+          multiple
+          webkitdirectory="true"
+          onChange={onFileSelect}
+          className="hidden"
+          id="folder-upload"
+        />
+        <div
           className="cursor-pointer w-full h-full flex flex-col items-center justify-center relative z-20"
+          onClick={() => document.getElementById('file-upload')?.click()}
         >
           <div className={`mb-3 lg:mb-6 p-4 lg:p-6 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 transition-all duration-500 shadow-inner-light dark:shadow-inner-dark ${!isDragging && 'animate-breathe'}`}>
             <Upload className="w-8 h-8 lg:w-12 lg:h-12 text-primary drop-shadow-sm" />
           </div>
-          <p className="text-base lg:text-lg font-medium text-foreground mb-1 lg:mb-2">
-            {isDragging ? 'Drop files here' : 'Drop files here'}
+          <p className="text-base lg:text-lg font-medium text-foreground mb-1 lg:mb-2 text-center px-4">
+            {isDragging ? 'Drop folders or files here' : 'Drop folders or files here'}
           </p>
-          <p className="text-xs lg:text-sm text-muted-foreground hidden lg:block">
-            or click to browse
-          </p>
-        </label>
+          <div className="text-xs lg:text-sm text-muted-foreground hidden lg:flex items-center gap-1">
+            <span>or click to</span>
+            <button 
+              type="button"
+              onClick={(e) => { e.stopPropagation(); document.getElementById('file-upload')?.click(); }}
+              className="text-primary hover:underline font-semibold"
+            >
+              browse files
+            </button>
+            <span>or</span>
+            <button 
+              type="button"
+              onClick={(e) => { e.stopPropagation(); document.getElementById('folder-upload')?.click(); }}
+              className="text-primary hover:underline font-semibold"
+            >
+              upload folder
+            </button>
+          </div>
+        </div>
       </div>
 
       {selectedFiles.length > 0 && (

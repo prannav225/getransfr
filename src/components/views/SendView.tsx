@@ -10,6 +10,7 @@ interface SendViewProps {
   currentDevice: Device | null;
   connectedDevices: Device[];
   handleSendFiles: (device: Device) => Promise<void>;
+  onShareText: (to: string, text: string) => void;
   isSending: boolean;
 }
 
@@ -20,6 +21,7 @@ export function SendView({
   currentDevice,
   connectedDevices,
   handleSendFiles,
+  onShareText,
   isSending,
 }: SendViewProps) {
   
@@ -61,6 +63,7 @@ export function SendView({
             currentDevice={currentDevice}
             connectedDevices={connectedDevices}
             onSendFiles={handleSendFiles}
+            onShareText={onShareText}
             selectedFiles={selectedFiles}
             isSending={isSending}
         />

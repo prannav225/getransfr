@@ -1,33 +1,29 @@
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Device } from '@/types/device';
+import { useTheme } from '@/components/ThemeProvider';
+import { useSound } from '@/hooks/useSound';
 
 interface HeaderProps {
   currentDevice: Device | null;
 }
 
 export function Header({ currentDevice }: HeaderProps) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const { isMuted, setIsMuted } = useSound();
   const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   useEffect(() => {
     // Remove no-transitions class after initial render
     document.documentElement.classList.remove('no-transitions');
-  }, []);
-
-  useEffect(() => {
-    setMounted(true);
-    const theme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    const isDark = theme === 'dark' || (!theme && systemPrefersDark);
-    setIsDarkMode(isDark);
-
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   }, []);
 
   useEffect(() => {
@@ -40,38 +36,16 @@ export function Header({ currentDevice }: HeaderProps) {
     };
   }, []);
 
-  const toggleDarkMode = () => {
-    const newDarkMode = !isDarkMode;
-    setIsDarkMode(newDarkMode);
-
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
-  useEffect(() => {
-    if (currentDevice) {
-      console.log('Current device in Header:', currentDevice);
-    }
-  }, [currentDevice]);
-
   useEffect(() => {
     // Update meta theme-color for PWA/Mobile browser status bar
-    // Dark: slate-950 (#020817), Light: white (#ffffff) to ensure status bar icons turn black
-    const themeColor = isDarkMode ? '#020817' : '#ffffff';
+    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const themeColor = isDark ? '#020817' : '#ffffff';
     
     let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
     
-    // If we found a meta tag that has a media attribute, it's one of the static ones. 
-    // We want a single authoritative tag without media queries for dynamic control.
     if (!meta || meta.hasAttribute('media')) {
-        // Remove all existing theme-color tags (including static media ones) to start fresh
         document.querySelectorAll('meta[name="theme-color"]').forEach(t => t.remove());
         
-        // Create a new fresh tag
         meta = document.createElement('meta');
         meta.name = 'theme-color';
         document.head.appendChild(meta);
@@ -79,7 +53,7 @@ export function Header({ currentDevice }: HeaderProps) {
     
     meta.setAttribute('content', themeColor);
     
-  }, [isDarkMode]);
+  }, [theme]);
 
   if (!mounted) {
     return <div className="h-[88px]" />; // Placeholder with same height to prevent layout shift
@@ -96,16 +70,23 @@ export function Header({ currentDevice }: HeaderProps) {
               Getransfr
             </h1>
           </div>
-          <button
-            onClick={toggleDarkMode}
-            className="p-2.5 rounded-full bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 border border-black/5 dark:border-white/10 shadow-sm transition-all duration-300 group"
-            aria-label="Toggle theme"
-          >
-            <div className="relative w-4 h-4 lg:w-5 lg:h-5">
-              <Sun className={`w-full h-full text-amber-500 absolute transition-all duration-500 ${isDarkMode ? 'rotate-0 opacity-100 scale-100' : 'rotate-90 opacity-0 scale-50'}`} />
-              <Moon className={`w-full h-full text-primary absolute transition-all duration-500 ${!isDarkMode ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-50'}`} />
-            </div>
-          </button>
+          <div className="flex items-center gap-1.5 lg:gap-3">
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="p-2 lg:p-2.5 rounded-full hover:bg-white/10 dark:hover:bg-white/5 transition-all active:scale-95 text-muted-foreground hover:text-primary"
+              title={isMuted ? "Unmute" : "Mute"}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 lg:w-5 h-5" /> : <Volume2 className="w-4 h-4 lg:w-5 h-5" />}
+            </button>
+            
+            <button
+              onClick={toggleTheme}
+              className="p-2 lg:p-2.5 rounded-full hover:bg-white/10 dark:hover:bg-white/5 transition-all active:scale-95 text-muted-foreground hover:text-primary"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 lg:w-5 h-5" /> : <Moon className="w-4 h-4 lg:w-5 h-5" />}
+            </button>
+          </div>
         </div>
         
         {currentDevice && currentDevice.name && (

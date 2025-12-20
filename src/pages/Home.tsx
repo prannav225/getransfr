@@ -12,9 +12,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SendView } from '@/components/views/SendView';
 import { ReceiveView } from '@/components/views/ReceiveView';
 import { BottomNav } from '@/components/navigation/BottomNav';
+import { useClipboard } from '@/hooks/useClipboard';
 
 export function Home() {
     const { currentDevice, connectedDevices } = useDevices();
+    const { shareText } = useClipboard();
     const {
         selectedFiles,
         handleFileSelect,
@@ -31,6 +33,27 @@ export function Home() {
     };
 
     useEffect(() => {
+        // Handle files shared from other apps via Web Share Target API
+        if ('launchQueue' in window) {
+            (window as any).launchQueue.setConsumer(async (launchParams: any) => {
+                if (launchParams.files && launchParams.files.length > 0) {
+                    const files = await Promise.all(
+                        launchParams.files.map((fileHandle: any) => fileHandle.getFile())
+                    );
+                    
+                    if (files.length > 0) {
+                        const event = {
+                            target: {
+                                files: Object.assign([], files)
+                            }
+                        } as unknown as React.ChangeEvent<HTMLInputElement>;
+                        handleFileSelect(event);
+                        toast.success(`${files.length} file(s) shared with Getransfr`);
+                    }
+                }
+            });
+        }
+
         const handleTransferRequest = (e: CustomEvent) => {
             const { files, accept, decline } = e.detail;
 
@@ -46,6 +69,9 @@ export function Home() {
                         root.unmount();
                         document.body.removeChild(modal);
                         toast.success('Transfer accepted');
+                        
+                        // Show notification on completion (we'll need a way to track the current receiving transfer)
+                        // For now, simple success is fine.
                     }}
                     onDecline={() => {
                         decline();
@@ -62,12 +88,46 @@ export function Home() {
             toast.error(message);
         };
 
+        // Auto-cleanup history older than 7 days
+        const cleanupHistory = () => {
+            const savedHistory = localStorage.getItem('transferHistory');
+            if (savedHistory) {
+                try {
+                    const history = JSON.parse(savedHistory);
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    
+                    const filteredHistory = history.filter((record: any) => {
+                        return new Date(record.timestamp) > sevenDaysAgo;
+                    });
+                    
+                    if (filteredHistory.length !== history.length) {
+                        localStorage.setItem('transferHistory', JSON.stringify(filteredHistory));
+                    }
+                } catch (e) {
+                    console.error('Failed to cleanup history:', e);
+                }
+            }
+        };
+        cleanupHistory();
+
+        const handleTransferComplete = () => {
+            if (Notification.permission === 'granted') {
+                new Notification('Transfer Complete', {
+                    body: 'Files have been transferred successfully.',
+                    icon: '/G.png'
+                });
+            }
+        };
+
         window.addEventListener('file-transfer-request', handleTransferRequest as EventListener);
         window.addEventListener('file-transfer-error', handleTransferError as EventListener);
+        window.addEventListener('file-transfer-complete', handleTransferComplete as EventListener);
 
         return () => {
             window.removeEventListener('file-transfer-request', handleTransferRequest as EventListener);
             window.removeEventListener('file-transfer-error', handleTransferError as EventListener);
+            window.removeEventListener('file-transfer-complete', handleTransferComplete as EventListener);
         };
     }, []);
 
@@ -118,6 +178,7 @@ export function Home() {
                             currentDevice={currentDevice}
                             connectedDevices={connectedDevices}
                             handleSendFiles={handleSendFiles}
+                            onShareText={shareText}
                             selectedFiles={selectedFiles}
                             handleFileSelect={handleFileSelect}
                             handleFileRemove={handleFileRemove}
@@ -152,15 +213,16 @@ export function Home() {
                                 transition={{ type: "spring", stiffness: 260, damping: 20 }}
                                 className="h-full"
                             >
-                                <SendView 
-                                    currentDevice={currentDevice}
-                                    connectedDevices={connectedDevices}
-                                    handleSendFiles={handleSendFiles}
-                                    selectedFiles={selectedFiles}
-                                    handleFileSelect={handleFileSelect}
-                                    handleFileRemove={handleFileRemove}
-                                    isSending={isSending}
-                                />
+                                 <SendView 
+                                     currentDevice={currentDevice}
+                                     connectedDevices={connectedDevices}
+                                     handleSendFiles={handleSendFiles}
+                                     onShareText={shareText}
+                                     selectedFiles={selectedFiles}
+                                     handleFileSelect={handleFileSelect}
+                                     handleFileRemove={handleFileRemove}
+                                     isSending={isSending}
+                                 />
                             </motion.div>
                         ) : (
                             <motion.div

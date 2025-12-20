@@ -17,6 +17,7 @@ describe('DeviceList Component', () => {
   ];
 
   const mockOnSendFiles = vi.fn();
+  const mockOnShareText = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,6 +29,7 @@ describe('DeviceList Component', () => {
         currentDevice={currentDevice}
         connectedDevices={[]}
         onSendFiles={mockOnSendFiles}
+        onShareText={mockOnShareText}
         selectedFiles={[]}
         isSending={false}
       />
@@ -41,6 +43,7 @@ describe('DeviceList Component', () => {
         currentDevice={currentDevice}
         connectedDevices={[currentDevice, ...otherDevices]}
         onSendFiles={mockOnSendFiles}
+        onShareText={mockOnShareText}
         selectedFiles={[]}
         isSending={false}
       />
@@ -57,6 +60,7 @@ describe('DeviceList Component', () => {
         currentDevice={currentDevice}
         connectedDevices={otherDevices}
         onSendFiles={mockOnSendFiles}
+        onShareText={mockOnShareText}
         selectedFiles={mockFiles}
         isSending={false}
       />
@@ -72,14 +76,15 @@ describe('DeviceList Component', () => {
         currentDevice={currentDevice}
         connectedDevices={otherDevices}
         onSendFiles={mockOnSendFiles}
+        onShareText={mockOnShareText}
         selectedFiles={[]}
         isSending={false}
       />
     );
     
-    const sendButtons = screen.getAllByRole('button');
-    sendButtons.forEach(button => {
-      expect(button).toBeDisabled();
+    const sendFilesButtons = screen.getAllByText('Send Files');
+    sendFilesButtons.forEach(button => {
+      expect(button.closest('button')).toBeDisabled();
     });
   });
 });

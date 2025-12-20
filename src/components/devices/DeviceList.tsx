@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Users } from 'lucide-react';
+import { Users, Clipboard as ClipboardIcon } from 'lucide-react';
 import { Device } from '@/types/device';
 import toast from 'react-hot-toast';
 
@@ -7,6 +6,7 @@ interface DeviceListProps {
   currentDevice: Device | null;
   connectedDevices: Device[];
   onSendFiles: (device: Device) => Promise<void>;
+  onShareText: (to: string, text: string) => void;
   selectedFiles: File[];
   isSending: boolean;
 }
@@ -15,6 +15,7 @@ export function DeviceList({
   currentDevice,
   connectedDevices,
   onSendFiles,
+  onShareText,
   selectedFiles,
   isSending
 }: DeviceListProps) {
@@ -102,12 +103,26 @@ export function DeviceList({
                 </p>
               </div>
 
-              <button
-                disabled={selectedFiles.length === 0 || isSending}
-                className="w-full py-2 rounded-xl text-sm font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-2 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                  <span>Send Files</span>
-              </button>
+              <div className="flex gap-2 w-full">
+                <button
+                  disabled={selectedFiles.length === 0 || isSending}
+                  onClick={(e) => { e.stopPropagation(); handleSendClick(device); }}
+                  className="flex-[2] py-2 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <span>Send Files</span>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const text = prompt('Enter text to share with ' + device.name);
+                    if (text) onShareText(device.socketId, text);
+                  }}
+                  className="flex-1 py-2 rounded-xl text-sm font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-all flex items-center justify-center gap-2"
+                  title="Share Clipboard"
+                >
+                  <ClipboardIcon className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
