@@ -1,0 +1,29 @@
+{
+  "name": "Getransfr — Instant File Transfer",
+  "short_name": "Getransfr",
+  "description": "Fast, secure peer-to-peer file transfer on the same Wi-Fi network. No internet required.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#3b82f6",
+  "background_color": "#ffffff",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [],
+  "prefer_related_applications": false
+}
