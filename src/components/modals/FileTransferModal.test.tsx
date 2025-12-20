@@ -18,7 +18,7 @@ describe('FileTransferModal Component', () => {
         onDecline={mockOnDecline} 
       />
     );
-    expect(screen.getByText(/Someone wants to share 2 files with you/i)).toBeInTheDocument();
+    expect(screen.getByText(/Nearby device wants to share/i)).toBeInTheDocument();
     expect(screen.getByText('file1.txt')).toBeInTheDocument();
     expect(screen.getByText('file2.jpg')).toBeInTheDocument();
   });
@@ -32,10 +32,11 @@ describe('FileTransferModal Component', () => {
       />
     );
     // 1024 + 2048*1024 = 1KB + 2MB = ~2 MB
-    expect(screen.getByText(/Total size: 2 MB/i)).toBeInTheDocument();
+    // It appears twice: once in the list and once in the summary
+    expect(screen.getAllByText('2 MB')[0]).toBeInTheDocument();
   });
 
-  it('calls onAccept when Accept button is clicked', () => {
+  it('calls onAccept when Accept Transfer button is clicked', () => {
     render(
       <FileTransferModal 
         files={mockFiles} 
@@ -43,7 +44,7 @@ describe('FileTransferModal Component', () => {
         onDecline={mockOnDecline} 
       />
     );
-    fireEvent.click(screen.getByText('Accept'));
+    fireEvent.click(screen.getByText('Accept Transfer'));
     expect(mockOnAccept).toHaveBeenCalled();
   });
 
