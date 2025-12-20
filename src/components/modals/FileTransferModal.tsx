@@ -125,12 +125,21 @@ export function FileTransferModal({ files, onAccept, onDecline }: FileTransferMo
             >
               Decline
             </button>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(var(--primary), 0.4)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={onAccept}
-              className="flex-[2] py-3.5 rounded-2xl font-bold text-sm text-white bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+              className="relative flex-[2] py-3.5 rounded-2xl font-bold text-sm text-white bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25 transition-all overflow-hidden group/btn"
             >
-              Accept Transfer
-            </button>
+              <motion.div 
+                animate={{ x: ["-100%", "200%"] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12" 
+              />
+              <span className="relative z-10 flex items-center justify-center gap-2 text-white">
+                Accept Transfer
+              </span>
+            </motion.button>
           </div>
         </motion.div>
       </div>
