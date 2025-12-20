@@ -7,6 +7,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'G.png', 'getransfr-logo.png'],
       manifest: {
@@ -22,17 +25,30 @@ export default defineConfig({
         icons: [
           {
             src: '/android-chrome-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable"
           },
           {
             src: '/android-chrome-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable"
           }
-        ]
+        ],
+        share_target: {
+          action: "/",
+          method: "POST",
+          enctype: "multipart/form-data",
+          params: {
+            files: [
+              {
+                name: "files",
+                accept: ["*/*"]
+              }
+            ]
+          }
+        }
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],

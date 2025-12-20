@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FileProgress } from "../p2pService";
+import { eventBus, EVENTS } from "@/utils/events";
 
 // Define types for File System Access API
 interface FileSystemWritableFileStream extends WritableStream {
@@ -34,9 +35,14 @@ class RTCFileTransferManager {
     initializeSender(peerId: string, files: File[], callbacks: FileProgress): void {
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
         this.totalSizes.set(peerId, totalSize);
-        this.sentSizes.set(peerId, 0);
+        // Don't reset sentSizes if we're resuming
+        if (!this.sentSizes.has(peerId)) {
+            this.sentSizes.set(peerId, 0);
+        }
         this.callbacks.set(peerId, callbacks);
-        this.startTime.set(peerId, Date.now());
+        if (!this.startTime.has(peerId)) {
+            this.startTime.set(peerId, Date.now());
+        }
     }
 
     async initializeReceiver(peerId: string, files: any[]): Promise<void> {
@@ -52,15 +58,17 @@ class RTCFileTransferManager {
                 const writable = await handle.createWritable();
                 this.fileStreams.set(peerId, writable);
             } catch (err) {
-                this.chunks.set(peerId, []);
+                if (!this.chunks.has(peerId)) {
+                    this.chunks.set(peerId, []);
+                }
             }
         } else {
-            this.chunks.set(peerId, []);
+            if (!this.chunks.has(peerId)) {
+                this.chunks.set(peerId, []);
+            }
         }
 
-        window.dispatchEvent(new CustomEvent('file-transfer-start', {
-            detail: { peerId, totalSize }
-        }));
+        eventBus.emit(EVENTS.FILE_TRANSFER_REQUEST + '-start', { peerId, totalSize });
     }
 
     async sendFile(peerId: string, file: File, dataChannel: RTCDataChannel): Promise<void> {
@@ -78,7 +86,9 @@ class RTCFileTransferManager {
 
         const reader = new FileReader();
         const chunkSize = RTCFileTransferManager.CHUNK_SIZE;
-        let offset = 0;
+        
+        // Support Resuming: Start from sentSize
+        let offset = sentSize; 
 
         while (offset < file.size) {
             const slice = file.slice(offset, offset + chunkSize);
@@ -88,6 +98,8 @@ class RTCFileTransferManager {
                 await new Promise(resolve => setTimeout(resolve, 50));
 
                 if (dataChannel.readyState !== 'open') {
+                    // This is where we break on connection loss
+                    this.sentSizes.set(peerId, offset);
                     throw new Error('Connection lost');
                 }
             }
@@ -99,7 +111,7 @@ class RTCFileTransferManager {
                 dataChannel.send(chunk);
             }
 
-            offset += chunkSize;
+            offset += chunk.byteLength;
             sentSize += chunk.byteLength;
 
             const now = Date.now();
@@ -110,15 +122,13 @@ class RTCFileTransferManager {
             const progress = Math.round((sentSize / totalSize) * 100);
             callbacks.onProgress(progress);
 
-            window.dispatchEvent(new CustomEvent('transfer-stats-update', {
-                detail: {
-                    peerId,
-                    speed,
-                    progress,
-                    totalSize,
-                    sentSize
-                }
-            }));
+            eventBus.emit('transfer-stats-update', {
+                peerId,
+                speed,
+                progress,
+                totalSize,
+                sentSize
+            });
 
             this.sentSizes.set(peerId, sentSize);
         }
@@ -171,9 +181,7 @@ class RTCFileTransferManager {
         const speed = elapsed > 0 ? receivedSize / elapsed : 0;
         const progress = Math.round((receivedSize / totalSize) * 100);
 
-        window.dispatchEvent(new CustomEvent('file-transfer-progress', {
-            detail: { peerId, progress, speed, receivedSize, totalSize }
-        }));
+        eventBus.emit('file-transfer-progress', { peerId, progress, speed, receivedSize, totalSize });
     }
 
     async saveFile(peerId: string, fileName: string): Promise<void> {

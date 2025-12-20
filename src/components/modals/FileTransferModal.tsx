@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, Share2, ShieldCheck, HardDrive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileTypeIcon } from '../files/FileTypeIcon';
+import { useSound } from '@/hooks/useSound';
 
 interface FileTransferModalProps {
   files: Array<{ name: string; size: number; type: string }>;
@@ -10,6 +11,7 @@ interface FileTransferModalProps {
 }
 
 export function FileTransferModal({ files, onAccept, onDecline }: FileTransferModalProps) {
+  const { playSound } = useSound();
   const [totalSize, setTotalSize] = useState('0 B');
   const [mounted, setMounted] = useState(false);
 
@@ -47,16 +49,16 @@ export function FileTransferModal({ files, onAccept, onDecline }: FileTransferMo
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-md overflow-hidden bg-white/70 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/40 dark:border-white/10 rounded-[2.5rem] shadow-2xl dark:shadow-soft-dark"
+          className="relative w-full max-w-md overflow-hidden bg-glass-card rounded-[var(--radius-xl)] shadow-2xl text-card-foreground"
         >
           {/* Header Section */}
           <div className="relative p-6 lg:p-8 pb-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-primary/10 dark:bg-primary/20 ring-1 ring-primary/20">
+                <div className="p-2.5 rounded-[var(--radius-lg)] bg-primary/10 ring-1 ring-primary/20">
                   <Share2 className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground tracking-tight">Incoming Transfer</h3>
+                <h3 className="text-[var(--text-xl)] font-bold tracking-tight">Incoming Transfer</h3>
               </div>
               <button
                 onClick={onDecline}
@@ -66,14 +68,14 @@ export function FileTransferModal({ files, onAccept, onDecline }: FileTransferMo
               </button>
             </div>
             
-            <p className="text-sm lg:text-base text-muted-foreground leading-relaxed">
+            <p className="text-[var(--text-sm)] lg:text-[var(--text-base)] text-muted-foreground leading-relaxed">
               Nearby device wants to share <span className="font-semibold text-foreground">{files.length} file{files.length > 1 ? 's' : ''}</span> with you.
             </p>
           </div>
 
           {/* File List Section */}
           <div className="px-6 lg:px-8 py-2">
-            <div className="bg-white/40 dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 overflow-hidden">
+            <div className="bg-black/5 dark:bg-black/20 rounded-[var(--radius-xl)] border border-white/10 overflow-hidden">
               <div className="max-h-48 overflow-y-auto custom-scrollbar p-2 space-y-1">
                 {files.map((file, index) => (
                   <motion.div
@@ -81,9 +83,9 @@ export function FileTransferModal({ files, onAccept, onDecline }: FileTransferMo
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     key={`${file.name}-${index}`}
-                    className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/50 dark:hover:bg-white/5 transition-colors group"
+                    className="flex items-center gap-3 p-3 rounded-[var(--radius-lg)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
                   >
-                    <div className="p-2 rounded-xl bg-background shadow-sm border border-border/50 group-hover:scale-105 transition-transform">
+                    <div className="p-2 rounded-[var(--radius-md)] bg-background shadow-sm border border-border/50 group-hover:scale-105 transition-transform flex-none">
                       <FileTypeIcon mimeType={file.type} className="w-5 h-5 text-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -97,7 +99,7 @@ export function FileTransferModal({ files, onAccept, onDecline }: FileTransferMo
               </div>
               
               {/* Summary Bar */}
-              <div className="flex items-center justify-between px-4 py-3 bg-primary/5 dark:bg-primary/10 border-t border-black/5 dark:border-white/5">
+              <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-t border-white/10">
                 <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-primary/70">
                   <HardDrive className="w-3.5 h-3.5" />
                   Total Payload
@@ -120,23 +122,29 @@ export function FileTransferModal({ files, onAccept, onDecline }: FileTransferMo
           {/* Actions Section */}
           <div className="p-6 lg:p-8 pt-6 flex gap-3">
             <button
-              onClick={onDecline}
-              className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-foreground bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-black/5 dark:border-white/10 shadow-sm transition-all active:scale-95"
+              onClick={() => {
+                onDecline();
+                playSound('tap');
+              }}
+              className="flex-1 py-3.5 rounded-[var(--radius-lg)] font-bold text-sm text-foreground bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-white/10 shadow-sm transition-all active:scale-95"
             >
               Decline
             </button>
             <motion.button
-              whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(var(--primary), 0.4)" }}
+              whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.95 }}
-              onClick={onAccept}
-              className="relative flex-[2] py-3.5 rounded-2xl font-bold text-sm text-white bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25 transition-all overflow-hidden group/btn"
+              onClick={() => {
+                onAccept();
+                playSound('tap');
+              }}
+              className="relative flex-[2] py-3.5 rounded-[var(--radius-lg)] font-bold text-sm text-primary-foreground bg-primary hover:brightness-110 shadow-lg shadow-primary/25 transition-all overflow-hidden group/btn"
             >
               <motion.div 
                 animate={{ x: ["-100%", "200%"] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12" 
               />
-              <span className="relative z-10 flex items-center justify-center gap-2 text-white">
+              <span className="relative z-10 flex items-center justify-center gap-2">
                 Accept Transfer
               </span>
             </motion.button>

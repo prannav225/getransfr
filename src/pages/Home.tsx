@@ -13,6 +13,9 @@ import { SendView } from '@/components/views/SendView';
 import { ReceiveView } from '@/components/views/ReceiveView';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { useClipboard } from '@/hooks/useClipboard';
+import { TextTransferModal } from '@/components/modals/TextTransferModal';
+import { useSound } from '@/hooks/useSound';
+import { eventBus, EVENTS } from '@/utils/events';
 
 export function Home() {
     const { currentDevice, connectedDevices } = useDevices();
@@ -26,11 +29,25 @@ export function Home() {
         cancelTransfer,
         setSelectedFiles
     } = useFileTransfer();
+    const { playSound } = useSound();
 
     const handleFileRemove = (index: number) => {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
         toast.success('File removed successfully');
     };
+
+    const [textModal, setTextModal] = useState<{
+        isOpen: boolean;
+        mode: 'send' | 'receive';
+        text: string;
+        deviceName: string;
+        targetSocketId?: string;
+    }>({
+        isOpen: false,
+        mode: 'send',
+        text: '',
+        deviceName: ''
+    });
 
     useEffect(() => {
         // Handle files shared from other apps via Web Share Target API
@@ -56,6 +73,7 @@ export function Home() {
 
         const handleTransferRequest = (e: CustomEvent) => {
             const { files, accept, decline } = e.detail;
+            playSound('ding');
 
             const modal = document.createElement('div');
             document.body.appendChild(modal);
@@ -86,6 +104,19 @@ export function Home() {
         const handleTransferError = (e: CustomEvent) => {
             const { message } = e.detail;
             toast.error(message);
+        };
+
+        const handleTextTransferRequest = (e: CustomEvent) => {
+            const { from, text } = e.detail;
+            const sender = connectedDevices.find(d => d.socketId === from);
+            playSound('ding');
+            setTextModal({
+                isOpen: true,
+                mode: 'receive',
+                text,
+                deviceName: sender?.name || 'Unknown Device',
+                targetSocketId: from
+            });
         };
 
         // Auto-cleanup history older than 7 days
@@ -120,16 +151,18 @@ export function Home() {
             }
         };
 
-        window.addEventListener('file-transfer-request', handleTransferRequest as EventListener);
-        window.addEventListener('file-transfer-error', handleTransferError as EventListener);
-        window.addEventListener('file-transfer-complete', handleTransferComplete as EventListener);
+        const unsubFileTransfer = eventBus.on(EVENTS.FILE_TRANSFER_REQUEST, handleTransferRequest);
+        const unsubFileError = eventBus.on(EVENTS.FILE_TRANSFER_ERROR, handleTransferError);
+        const unsubFileComplete = eventBus.on(EVENTS.FILE_TRANSFER_COMPLETE, handleTransferComplete);
+        const unsubTextTransfer = eventBus.on(EVENTS.TEXT_TRANSFER_REQUEST, handleTextTransferRequest);
 
         return () => {
-            window.removeEventListener('file-transfer-request', handleTransferRequest as EventListener);
-            window.removeEventListener('file-transfer-error', handleTransferError as EventListener);
-            window.removeEventListener('file-transfer-complete', handleTransferComplete as EventListener);
+            unsubFileTransfer();
+            unsubFileError();
+            unsubFileComplete();
+            unsubTextTransfer();
         };
-    }, []);
+    }, [connectedDevices]); // Add connectedDevices to deps to correctly find sender name
 
     // Stagger animation for children
     const containerVariants = {
@@ -137,7 +170,7 @@ export function Home() {
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.2
+                staggerChildren: 0.12
             }
         }
     };
@@ -156,91 +189,134 @@ export function Home() {
 
     const [activeTab, setActiveTab] = useState<'send' | 'receive'>('send');
 
+    const handleTabChange = (tab: 'send' | 'receive') => {
+        if (tab === activeTab) return;
+        setActiveTab(tab);
+    };
+
+    const slideVariants = {
+        enter: {
+            opacity: 0,
+            scale: 0.98,
+            filter: 'blur(10px)'
+        },
+        center: {
+            zIndex: 1,
+            opacity: 1,
+            scale: 1,
+            filter: 'blur(0px)'
+        },
+        exit: {
+            zIndex: 0,
+            opacity: 0,
+            scale: 1.02,
+            filter: 'blur(10px)'
+        }
+    };
+
+    const slideTransition = {
+        opacity: { duration: 0.35 },
+        scale: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+        filter: { duration: 0.35 }
+    };
+
     return (
         <div className="relative min-h-screen font-sans overflow-x-hidden">
             <AnimatedBackground />
             
             <motion.div 
-                className="container mx-auto p-4 sm:p-6 max-w-6xl relative z-10 min-h-screen flex flex-col"
+                className="container mx-auto p-3 sm:p-6 max-w-6xl relative z-10 h-full flex flex-col pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
             >
-                {/* Header is always visible but maybe simplified? Keeping full header for now */}
-                <motion.div variants={itemVariants} className="w-full mb-6">
+                {/* Header is always visible */}
+                <motion.div variants={itemVariants} className="w-full mb-3 lg:mb-6">
                     <Header currentDevice={currentDevice} />
                 </motion.div>
 
-                {/* Desktop/Tablet Grid - Only visible when not mobile or when tab system isn't active (fallback) */}
-                <div className="hidden lg:block w-full"> {/* Wrap in full width div */}
-                    {activeTab === 'send' ? (
-                        <SendView 
-                            currentDevice={currentDevice}
-                            connectedDevices={connectedDevices}
-                            handleSendFiles={handleSendFiles}
-                            onShareText={shareText}
-                            selectedFiles={selectedFiles}
-                            handleFileSelect={handleFileSelect}
-                            handleFileRemove={handleFileRemove}
-                            isSending={isSending}
-                        />
-                    ) : (
-                        <ReceiveView currentDevice={currentDevice} />
-                    )}
+                {/* Desktop/Tablet Grid - Elegant Cross-Fade */}
+                <div className="hidden lg:block w-full flex-1 relative min-h-0">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            variants={slideVariants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={slideTransition}
+                            className="w-full h-full transform-gpu"
+                        >
+                            {activeTab === 'send' ? (
+                                <SendView 
+                                    currentDevice={currentDevice}
+                                    connectedDevices={connectedDevices}
+                                    handleSendFiles={handleSendFiles}
+                                    onShareText={(to, text) => {
+                                        const device = connectedDevices.find(d => d.socketId === to);
+                                        setTextModal({
+                                            isOpen: true,
+                                            mode: 'send',
+                                            text: text || '',
+                                            deviceName: device?.name || 'Unknown Device',
+                                            targetSocketId: to
+                                        });
+                                    }}
+                                    selectedFiles={selectedFiles}
+                                    handleFileSelect={handleFileSelect}
+                                    handleFileRemove={handleFileRemove}
+                                    isSending={isSending}
+                                />
+                            ) : (
+                                <ReceiveView currentDevice={currentDevice} />
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
 
-                {/* Mobile View - Visible only on small screens */}
+                {/* Mobile View - Elegant Cross-Fade */}
                 <motion.div 
-                    className="block lg:hidden h-full touch-pan-y select-none transform-gpu"
-                    onPanEnd={(_e, { offset }) => {
-                        // Swipe Left (Go to Receive)
-                        if (offset.x < -50 && activeTab === 'send') {
-                            setActiveTab('receive');
-                        }
-                        // Swipe Right (Go to Send)
-                        else if (offset.x > 50 && activeTab === 'receive') {
-                            setActiveTab('send');
-                        }
-                    }}
+                    className="block lg:hidden flex-1 relative min-h-0 select-none transform-gpu overflow-hidden"
                 >
-                     <AnimatePresence mode="wait" initial={false}>
-                        {activeTab === 'send' ? (
-                            <motion.div
-                                key="send"
-                                initial={{ opacity: 0, x: "-50%" }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: "-50%" }}
-                                transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                                className="h-full"
-                            >
+                     <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            variants={slideVariants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={slideTransition}
+                            className="h-full w-full"
+                        >
+                            {activeTab === 'send' ? (
                                  <SendView 
                                      currentDevice={currentDevice}
                                      connectedDevices={connectedDevices}
                                      handleSendFiles={handleSendFiles}
-                                     onShareText={shareText}
+                                     onShareText={(to, text) => {
+                                         const device = connectedDevices.find(d => d.socketId === to);
+                                         setTextModal({
+                                             isOpen: true,
+                                             mode: 'send',
+                                             text: text || '',
+                                             deviceName: device?.name || 'Unknown Device',
+                                             targetSocketId: to
+                                         });
+                                     }}
                                      selectedFiles={selectedFiles}
                                      handleFileSelect={handleFileSelect}
                                      handleFileRemove={handleFileRemove}
                                      isSending={isSending}
                                  />
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="receive"
-                                initial={{ opacity: 0, x: "50%" }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: "50%" }}
-                                transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                                className="h-full"
-                            >
+                            ) : (
                                 <ReceiveView currentDevice={currentDevice} />
-                            </motion.div>
-                        )}
+                            )}
+                        </motion.div>
                     </AnimatePresence>
                 </motion.div>
 
                 {/* Bottom Navigation */}
-                <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+                <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
             </motion.div>
 
             <AnimatePresence>
@@ -259,6 +335,21 @@ export function Home() {
                             />
                         </div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {textModal.isOpen && (
+                    <TextTransferModal
+                        mode={textModal.mode}
+                        deviceName={textModal.deviceName}
+                        initialText={textModal.text}
+                        onAction={(text) => {
+                            if (textModal.mode === 'send' && textModal.targetSocketId && text) {
+                                shareText(textModal.targetSocketId, text);
+                            }
+                        }}
+                        onClose={() => setTextModal(prev => ({ ...prev, isOpen: false }))}
+                    />
                 )}
             </AnimatePresence>
         </div>

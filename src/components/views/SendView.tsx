@@ -35,12 +35,23 @@ export function SendView({
     }
   };
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+  const leftItemVariants = {
+    hidden: { x: -30, opacity: 0, scale: 0.98 },
     visible: { 
-        y: 0, 
-        opacity: 1,
-        transition: { type: 'spring' as const, stiffness: 100 }
+        x: 0, 
+        opacity: 1, 
+        scale: 1,
+        transition: { type: 'spring' as const, stiffness: 350, damping: 30 }
+    }
+  };
+
+  const rightItemVariants = {
+    hidden: { x: 30, opacity: 0, scale: 0.98 },
+    visible: { 
+        x: 0, 
+        opacity: 1, 
+        scale: 1,
+        transition: { type: 'spring' as const, stiffness: 350, damping: 30 }
     }
   };
 
@@ -49,16 +60,16 @@ export function SendView({
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 h-[calc(100vh-180px)] lg:h-full items-stretch lg:items-start pb-4 lg:pb-0"
+        className="flex flex-col flex-1 lg:grid lg:grid-cols-12 gap-3 lg:gap-6 items-stretch lg:items-start min-h-0"
     >
-      <motion.div variants={itemVariants} className="flex-none h-[40%] lg:h-full lg:col-span-7">
+      <motion.div variants={leftItemVariants} className="flex-none h-[42%] lg:h-full lg:col-span-6">
         <FileUpload
           selectedFiles={selectedFiles}
           onFileSelect={handleFileSelect}
           onFileRemove={handleFileRemove}
         />
       </motion.div>
-      <motion.div variants={itemVariants} className="flex-1 min-h-0 lg:h-full lg:col-span-5">
+      <motion.div variants={rightItemVariants} className="flex-1 min-h-0 lg:h-full lg:col-span-6">
          <DeviceList
             currentDevice={currentDevice}
             connectedDevices={connectedDevices}

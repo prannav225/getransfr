@@ -3,11 +3,15 @@
 @tailwind utilities;
 
 .bg-glass-card {
-  @apply bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.1)] dark:shadow-none;
+  background-color: hsl(var(--card) / var(--card-opacity, 0.6));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid hsl(var(--border) / var(--border-opacity, 0.4));
+  box-shadow: var(--card-shadow, 0 8px 32px -4px rgba(0,0,0,0.1));
 }
 
 .bg-glass-card-hover {
-  @apply hover:bg-white/80 dark:hover:bg-white/5 transition-all duration-300;
+  @apply hover:bg-[hsl(var(--card)/0.8)] transition-all duration-300;
 }
 
 /* Custom scrollbar for webkit browsers */
@@ -26,7 +30,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
  
-    --primary: 247 90% 60%; /* Vibrant Indigo/Purple */
+    --primary: 247 90% 60%;
     --primary-foreground: 210 40% 98%;
  
     --secondary: 210 40% 96.1%;
@@ -41,11 +45,31 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 214.3 32% 80%;
+    --input: 214.3 32% 80%;
     --ring: 247 90% 60%;
  
-    --radius: 1rem;
+    /* Standardized Border Radii - Optimized for Native feel */
+    --radius-sm: 0.75rem;   /* 12px */
+    --radius-md: 1.25rem;   /* 20px - Inner Cards */
+    --radius-lg: 1.75rem;   /* 28px - Modals */
+    --radius-xl: 2.5rem;    /* 40px - Main Sections/Header */
+    --radius-full: 9999px;
+    --radius: var(--radius-md);
+
+    /* Standardized Font Sizes */
+    --text-xs: 0.75rem;     /* 12px */
+    --text-sm: 0.875rem;    /* 14px */
+    --text-base: 1rem;      /* 16px */
+    --text-lg: 1.125rem;    /* 18px */
+    --text-xl: 1.25rem;     /* 20px */
+    --text-2xl: 1.5rem;     /* 24px */
+    --text-3xl: 1.875rem;   /* 30px */
+    --text-4xl: 2.25rem;    /* 36px */
+
+    /* Fixed Card Shadow */
+    --card-shadow: 0 10px 40px -12px rgba(0,0,0,0.15);
+    --border-opacity: 1;
   }
  
   .dark {
@@ -73,19 +97,149 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
  
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 217.2 32.6% 25%; /* Slightly more visible border for dark mode */
+    --input: 217.2 32.6% 25%;
     --ring: 242 90% 70%;
+    --border-opacity: 0.6;
+    --card-shadow: 0 10px 40px -12px rgba(0,0,0,0.5);
+  }
+
+  .glass {
+    --background: 210 100% 3%;
+    --foreground: 210 40% 98%;
+    --card: 210 100% 10%;
+    --card-foreground: 210 40% 98%;
+    --card-opacity: 0.15;
+    --primary: 200 100% 50%; /* Ice Blue */
+    --primary-foreground: 210 100% 5%;
+    --secondary: 180 100% 50%; /* Cyan */
+    --accent: 250 100% 70%; /* Soft Violet */
+    --border: 200 100% 50%;
+    --border-opacity: 0.25;
+    --card-shadow: 0 0 50px -10px rgba(0, 150, 255, 0.1), inset 0 0 20px rgba(255, 255, 255, 0.05);
+    --muted-foreground: 210 20% 70%;
+  }
+
+  .cyberpunk {
+    --background: 230 50% 2%; /* Deep Tech Blue */
+    --foreground: 180 100% 90%;
+    --card: 230 50% 5%;
+    --card-foreground: 180 100% 95%;
+    --card-opacity: 0.6;
+    --primary: 180 100% 50%; /* Electric Cyan */
+    --primary-foreground: 230 50% 2%;
+    --secondary: 35 100% 50%; /* Cyber Orange */
+    --accent: 140 100% 50%; /* Matrix Green */
+    --border: 180 100% 50%;
+    --border-opacity: 0.4;
+    --card-shadow: 0 0 30px rgba(0, 255, 255, 0.15), inset 0 0 10px rgba(0, 255, 255, 0.05);
+    --muted-foreground: 230 30% 60%;
+    --radius-sm: 0.125rem;
+    --radius-md: 0.25rem;
+    --radius-lg: 0.375rem;
+    --radius-xl: 0.5rem;
+    --radius: var(--radius-md);
+  }
+
+  .retro {
+    --background: 45 30% 2%;
+    --foreground: 45 100% 70%;
+    --card: 45 30% 5%;
+    --card-foreground: 45 100% 75%;
+    --card-opacity: 0.9;
+    --primary: 45 100% 50%; /* Amber */
+    --primary-foreground: 45 30% 2%;
+    --secondary: 45 100% 20%;
+    --border: 45 100% 50%;
+    --border-opacity: 0.3;
+    --radius-sm: 0px;
+    --radius-md: 2px;
+    --radius-lg: 4px;
+    --radius-xl: 6px;
+    --radius: var(--radius-md);
+    --card-shadow: 4px 4px 0px 0px rgba(255, 176, 0, 0.2), inset 1px 1px 0px 0px rgba(255, 176, 0, 0.1);
+    --muted-foreground: 45 30% 50%;
   }
 }
- 
+
+.retro::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(20, 15, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  z-index: 100;
+  background-size: 100% 3px, 3px 100%;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border transition-[background-color,border-color,color,box-shadow,transform] duration-300 ease-out;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html {
+    @apply bg-background text-foreground scroll-smooth;
+    height: 100vh;
+    height: -webkit-fill-available;
+    overflow: hidden;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary overflow-hidden;
+    height: 100%;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    font-size: var(--text-base);
+    line-height: 1.5;
+    overscroll-behavior: none;
   }
+  button, a, .clickable {
+    @apply cursor-pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+}
+
+.cyberpunk::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 100;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.cyberpunk::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(to bottom, transparent 0%, rgba(0, 255, 255, 0.03) 50%, transparent 100%);
+  opacity: 0.1;
+  z-index: 101;
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
 }
 
 #root {
@@ -93,11 +247,15 @@
   width: 100%;
 }
 
-/* Smooth transitions for theme switching */
-* {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-}
-
 .no-transitions * {
   transition: none !important;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
 }

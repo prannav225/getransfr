@@ -9,10 +9,22 @@ export function useSound() {
     localStorage.setItem('dropmate-muted', String(isMuted));
   }, [isMuted]);
 
-  const playSound = useCallback((type: 'whoosh' | 'ding' | 'error') => {
+  const triggerHaptic = useCallback((pattern: number | number[]) => {
+    if (!isMuted && typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  }, [isMuted]);
+
+  const playSound = useCallback((type: 'whoosh' | 'ding' | 'error' | 'tap') => {
     if (isMuted) return;
 
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Resume context if suspended (common in mobile)
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
 
@@ -22,7 +34,7 @@ export function useSound() {
     const now = audioCtx.currentTime;
 
     if (type === 'whoosh') {
-      // Sweeping frequency for "Whoosh"
+      triggerHaptic(20);
       oscillator.type = 'sine';
       oscillator.frequency.setValueAtTime(800, now);
       oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.5);
@@ -31,7 +43,7 @@ export function useSound() {
       oscillator.start();
       oscillator.stop(now + 0.5);
     } else if (type === 'ding') {
-      // High-pitched "Ding"
+      triggerHaptic([30, 50, 30]);
       oscillator.type = 'triangle';
       oscillator.frequency.setValueAtTime(1200, now);
       oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
@@ -40,15 +52,23 @@ export function useSound() {
       oscillator.start();
       oscillator.stop(now + 0.3);
     } else if (type === 'error') {
-      // Buzzer sound for error
+      triggerHaptic([100, 50, 100]);
       oscillator.type = 'sawtooth';
       oscillator.frequency.setValueAtTime(150, now);
       gainNode.gain.setValueAtTime(0.2, now);
       gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
       oscillator.start();
       oscillator.stop(now + 0.3);
+    } else if (type === 'tap') {
+      triggerHaptic(10);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(400, now);
+      gainNode.gain.setValueAtTime(0.1, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      oscillator.start();
+      oscillator.stop(now + 0.1);
     }
-  }, [isMuted]);
+  }, [isMuted, triggerHaptic]);
 
-  return { playSound, isMuted, setIsMuted };
+  return { playSound, triggerHaptic, isMuted, setIsMuted };
 }

@@ -12,20 +12,35 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.3,
+      staggerChildren: 0.12
     },
   },
 };
 
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
+const topItemVariants = {
+  hidden: { y: -30, opacity: 0, scale: 0.98 },
   visible: {
     y: 0,
     opacity: 1,
+    scale: 1,
     transition: {
       type: "spring" as const,
-      stiffness: 100,
-      damping: 10,
+      stiffness: 350,
+      damping: 30,
+    },
+  },
+};
+
+const bottomItemVariants = {
+  hidden: { y: 30, opacity: 0, scale: 0.98 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    scale: 1,
+    transition: {
+      type: "spring" as const,
+      stiffness: 350,
+      damping: 30,
     },
   },
 };
@@ -59,7 +74,7 @@ export function ReceiveView({ currentDevice }: ReceiveViewProps) {
         ))}
       </div>
 
-      <motion.div variants={itemVariants} className="relative z-10 text-center">
+      <motion.div variants={topItemVariants} className="relative z-10 text-center">
         <div className="relative mb-6 inline-block">
           <div className="absolute inset-0 bg-primary/20 dark:bg-primary/10 blur-3xl rounded-full" />
           <motion.div
@@ -70,24 +85,24 @@ export function ReceiveView({ currentDevice }: ReceiveViewProps) {
              <img 
               src={currentDevice?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=fallback`}
               alt="Device Avatar"
-              className="w-32 h-32 rounded-full shadow-2xl ring-4 ring-white dark:ring-white/10 relative z-10 bg-background"
+              className="w-32 h-32 rounded-full shadow-2xl ring-4 ring-primary/20 relative z-10 bg-background"
              />
-             <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-white dark:border-black z-20" />
+             <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-background z-20" />
           </motion.div>
         </div>
         
-        <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <h2 className="text-[var(--text-3xl)] font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           {currentDevice?.name}
         </h2>
         
-        <p className="text-muted-foreground flex items-center justify-center gap-2 text-lg">
+        <p className="text-muted-foreground flex items-center justify-center gap-2 text-[var(--text-lg)]">
           <Wifi className="w-5 h-5 animate-pulse text-primary" />
           Ready to receive...
         </p>
       </motion.div>
 
       <motion.div 
-        variants={itemVariants} 
+        variants={bottomItemVariants} 
         className="grid grid-cols-2 gap-4 w-full max-w-lg mt-12 px-4"
       >
         <div className="p-4 text-center">

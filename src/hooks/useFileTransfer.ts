@@ -3,9 +3,11 @@ import { Device } from '@/types/device';
 import rtcService from '@/services/rtcService';
 import JSZip from 'jszip';
 import { useSound } from './useSound';
+import { useWakeLock } from './useWakeLock';
 
 export function useFileTransfer() {
   const { playSound } = useSound();
+  const { requestWakeLock, releaseWakeLock } = useWakeLock();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -49,6 +51,8 @@ export function useFileTransfer() {
     setIsSending(true);
     setProgress(0);
     playSound('whoosh');
+    requestWakeLock();
+    if ('vibrate' in navigator) navigator.vibrate([10, 50, 10]);
 
     try {
       const filesToSend = selectedFiles.length > 1
@@ -63,11 +67,13 @@ export function useFileTransfer() {
             setProgress(p);
             if (p === 100) {
               playSound('ding');
+              if ('vibrate' in navigator) navigator.vibrate(50);
               // Auto-close after a short delay when progress reaches 100%
               setTimeout(() => {
                 setIsSending(false);
                 setCancelTransfer(null);
                 setSelectedFiles([]);
+                releaseWakeLock();
               }, 2000);
             }
           },
@@ -75,10 +81,12 @@ export function useFileTransfer() {
             // Ensure we show 100% before closing
             setProgress(100);
             playSound('ding');
+            if ('vibrate' in navigator) navigator.vibrate(50);
             setTimeout(() => {
               setIsSending(false);
               setCancelTransfer(null);
               setSelectedFiles([]);
+              releaseWakeLock();
             }, 2000);
           },
           onError: (error) => {
@@ -87,11 +95,13 @@ export function useFileTransfer() {
             setIsSending(false);
             setProgress(0);
             setCancelTransfer(null);
+            releaseWakeLock();
           },
           onCancel: () => {
             setIsSending(false);
             setProgress(0);
             setCancelTransfer(null);
+            releaseWakeLock();
           }
         }
       );
@@ -101,6 +111,7 @@ export function useFileTransfer() {
       console.error('Failed to initialize transfer:', error);
       setIsSending(false);
       setProgress(0);
+      releaseWakeLock();
       throw error;
     }
   }, [selectedFiles, isSending]);

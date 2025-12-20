@@ -95,19 +95,19 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
   }
 
   return (
-    <div className="relative overflow-hidden backdrop-blur-2xl bg-glass-card border border-white/20 dark:border-white/10 rounded-2xl lg:rounded-3xl shadow-soft dark:shadow-soft-dark p-4 lg:p-8 transition-all duration-300 h-full flex flex-col group/card hover:shadow-glow dark:hover:shadow-glow-dark">
+    <div className="relative overflow-hidden bg-glass-card rounded-[var(--radius-xl)] p-4 lg:p-8 transition-all duration-300 h-full flex flex-col group/card hover:shadow-glow dark:hover:shadow-glow-dark text-card-foreground">
       <div className="hidden lg:flex items-center gap-3 mb-8 relative z-10">
-        <div className="p-2.5 rounded-full bg-primary/10 dark:bg-primary/20 ring-1 ring-primary/20">
+        <div className="p-2.5 rounded-full bg-primary/10 ring-1 ring-primary/20">
           <Upload className="w-5 h-5 text-primary" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground tracking-tight">Share Files</h2>
+        <h2 className="text-[var(--text-xl)] lg:text-[var(--text-2xl)] font-bold tracking-tight">Share Files</h2>
       </div>
 
       <div
-        className={`relative flex flex-col items-center justify-center w-full h-full min-h-[140px] lg:min-h-[300px] p-4 lg:p-8 rounded-xl lg:rounded-3xl border-2 border-dashed transition-all duration-300 ease-in-out cursor-pointer group hover:bg-glass-card-hover overflow-hidden backdrop-blur-md ${
+        className={`relative flex flex-col items-center justify-center w-full h-full min-h-[140px] lg:min-h-[300px] p-4 lg:p-8 rounded-[var(--radius-lg)] lg:rounded-[var(--radius-xl)] border-2 border-dashed transition-all duration-300 ease-in-out cursor-pointer group hover:bg-glass-card-hover overflow-hidden backdrop-blur-md ${
           isDragging 
           ? 'border-primary bg-primary/10 scale-[1.02] shadow-[0_0_30px_rgba(var(--primary),0.2)]' 
-          : 'border-white/20 dark:border-white/10 bg-white/5 dark:bg-black/20 shadow-inner'
+          : 'border-border bg-black/5 dark:bg-black/20 shadow-inner'
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -133,10 +133,10 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
           className="cursor-pointer w-full h-full flex flex-col items-center justify-center relative z-20"
           onClick={() => document.getElementById('file-upload')?.click()}
         >
-          <div className={`mb-3 lg:mb-6 p-4 lg:p-6 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 transition-all duration-500 shadow-inner-light dark:shadow-inner-dark ${!isDragging && 'animate-breathe'}`}>
+          <div className={`mb-3 lg:mb-6 p-4 lg:p-6 rounded-full bg-gradient-to-br from-primary/10 to-transparent transition-all duration-500 shadow-inner-light dark:shadow-inner-dark ${!isDragging && 'animate-breathe'}`}>
             <Upload className="w-8 h-8 lg:w-12 lg:h-12 text-primary drop-shadow-sm" />
           </div>
-          <p className="text-base lg:text-lg font-medium text-foreground mb-1 lg:mb-2 text-center px-4">
+          <p className="text-base lg:text-lg font-medium mb-1 lg:mb-2 text-center px-4">
             {isDragging ? 'Drop folders or files here' : 'Drop folders or files here'}
           </p>
           <div className="text-xs lg:text-sm text-muted-foreground hidden lg:flex items-center gap-1">
@@ -163,15 +163,15 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
       {selectedFiles.length > 0 && (
         <div className="mt-6 space-y-4 relative z-10">
           {previewUrl && (
-            <div className="relative rounded-2xl overflow-hidden shadow-lg ring-1 ring-white/10 dark:ring-white/5">
+            <div className="relative rounded-[var(--radius-lg)] overflow-hidden shadow-lg ring-1 ring-border">
               <img src={previewUrl} alt="Preview" className="w-full h-48 object-cover transition-transform duration-700 hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             </div>
           )}
-          <div className="bg-card/50 backdrop-blur-md rounded-2xl p-4 border border-white/10 dark:border-white/5 shadow-sm">
+          <div className="bg-card/50 backdrop-blur-md rounded-[var(--radius-lg)] p-4 border border-border shadow-sm">
             {selectedFiles.map((file, index) => (
               <div key={`${file.name}-${index}`} className="flex items-center gap-4 py-3 first:pt-1 last:pb-1">
-                <div className="p-2.5 rounded-xl bg-background/80 shadow-sm border border-border/50">
+                <div className="p-2.5 rounded-[var(--radius-md)] bg-background/80 shadow-sm border border-border/50">
                   <FileTypeIcon mimeType={file.type} className="w-6 h-6 text-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">

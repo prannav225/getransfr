@@ -50,7 +50,12 @@ export function useDevices() {
         avatar: generateAvatar(device.name)
       }));
       
-      setConnectedDevices(devicesWithAvatars);
+      setConnectedDevices(prev => {
+        if (devicesWithAvatars.length > prev.length) {
+          if ('vibrate' in navigator) navigator.vibrate(10);
+        }
+        return devicesWithAvatars;
+      });
     };
     
     const handleDeviceDisconnected = (deviceId: string) => {

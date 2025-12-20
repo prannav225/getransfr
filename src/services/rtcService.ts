@@ -4,6 +4,7 @@ import { socket } from "./socket";
 import RTCConnectionManager from "./rtc/RTCConnectionManager";
 import RTCDataChannelManager from "./rtc/RTCDataChannelManager";
 import RTCFileTransferManager from "./rtc/RTCFileTransferManager";
+import { eventBus, EVENTS } from "@/utils/events";
 
 export class RTCService {
     private connectionManager: RTCConnectionManager;
@@ -17,7 +18,7 @@ export class RTCService {
         this.fileTransferManager = new RTCFileTransferManager();
 
         this.setupSocketListeners();
-        this.setupWindowListeners();
+        this.setupEventBusListeners();
     }
 
     private setupSocketListeners(): void {
@@ -63,11 +64,10 @@ export class RTCService {
         });
     }
 
-    private setupWindowListeners(): void {
-        window.addEventListener('file-transfer-cancel', ((event: CustomEvent) => {
-            const { peerId } = event.detail;
+    private setupEventBusListeners(): void {
+        eventBus.on(EVENTS.TRANSFER_CANCEL, ({ peerId }) => {
             this.cancelTransfer(peerId);
-        }) as EventListener);
+        });
     }
 
     private setupDataChannel(peerId: string, dataChannel: RTCDataChannel): void {
@@ -134,15 +134,12 @@ export class RTCService {
 
     private async handleMetadataMessage(peerId: string, files: any[]): Promise<void> {
         const accepted = await new Promise<boolean>(resolve => {
-            const event = new CustomEvent('file-transfer-request', {
-                detail: {
-                    peerId,
-                    files,
-                    accept: () => resolve(true),
-                    decline: () => resolve(false)
-                }
+            eventBus.emit(EVENTS.FILE_TRANSFER_REQUEST, {
+                peerId,
+                files,
+                accept: () => resolve(true),
+                decline: () => resolve(false)
             });
-            window.dispatchEvent(event);
         });
 
         const dataChannel = this.dataChannelManager.getDataChannel(peerId);

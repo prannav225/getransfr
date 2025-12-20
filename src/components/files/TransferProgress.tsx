@@ -135,16 +135,16 @@ export function TransferProgress({ progress: initialProgress, isSending: isSendi
   if (!isSendingProp && transfers.size === 0) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-2xl flex items-center justify-center z-50 animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-300">
       <div className="flex flex-col gap-6 max-w-md w-full mx-6">
         {isSendingProp && (
-          <div className="relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
+          <div className="relative overflow-hidden bg-glass-card rounded-[var(--radius-xl)] p-8 shadow-2xl text-card-foreground">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <span className="text-lg font-semibold text-white block mb-1">
+                <span className="text-[var(--text-lg)] font-bold block mb-1">
                   {initialProgress === 100 ? 'Transfer Complete' : 'Sending Files...'}
                 </span>
-                <div className="text-sm text-white/60">
+                <div className="text-[var(--text-sm)] text-muted-foreground">
                   {senderState ? (
                     <>
                       {formatSpeed(senderState.speed)}
@@ -156,7 +156,7 @@ export function TransferProgress({ progress: initialProgress, isSending: isSendi
               {onCancel && initialProgress < 100 && (
                 <button
                   onClick={onCancel}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white"
+                  className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-muted-foreground hover:text-foreground"
                   aria-label="Cancel sending"
                 >
                   <X className="w-5 h-5" />
@@ -164,13 +164,13 @@ export function TransferProgress({ progress: initialProgress, isSending: isSendi
               )}
             </div>
 
-            <div className="relative w-full bg-white/10 rounded-full h-3 overflow-hidden">
+            <div className="relative w-full bg-black/5 dark:bg-white/10 rounded-full h-3 overflow-hidden shadow-inner">
               <div
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-dropmate-primary to-dropmate-accent-pink transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+                className="absolute top-0 left-0 h-full bg-primary transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
                 style={{ width: `${initialProgress}%` }}
               />
             </div>
-            <div className="flex justify-between mt-3 text-sm font-medium text-white/80">
+            <div className="flex justify-between mt-3 text-sm font-medium text-muted-foreground">
               <span>{initialProgress}%</span>
               <span>{senderState ? `${(senderState.sentSize / 1024 / 1024).toFixed(1)} / ${(senderState.totalSize / 1024 / 1024).toFixed(1)} MB` : ''}</span>
             </div>
@@ -178,13 +178,13 @@ export function TransferProgress({ progress: initialProgress, isSending: isSendi
         )}
 
         {Array.from(transfers.values()).map((transfer) => (
-          <div key={transfer.peerId} className="relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
+          <div key={transfer.peerId} className="relative overflow-hidden bg-glass-card rounded-[var(--radius-xl)] p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-500 text-card-foreground">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <span className="text-lg font-semibold text-white block mb-1">
+                <span className="text-[var(--text-lg)] font-bold block mb-1">
                   {transfer.progress === 100 ? 'Transfer Complete' : 'Receiving Files...'}
                 </span>
-                <div className="text-sm text-white/60">
+                <div className="text-[var(--text-sm)] text-muted-foreground">
                   {formatSpeed(transfer.speed)}
                   {transfer.progress < 100 && ` • ${calculateETA(transfer.totalSize, transfer.sentSize, transfer.speed)} remaining`}
                 </div>
@@ -192,7 +192,7 @@ export function TransferProgress({ progress: initialProgress, isSending: isSendi
               {transfer.progress < 100 && (
                 <button
                   onClick={() => handleReceiverCancel(transfer.peerId)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white"
+                  className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-muted-foreground hover:text-foreground"
                   aria-label="Cancel receiving"
                 >
                   <X className="w-5 h-5" />
@@ -200,13 +200,13 @@ export function TransferProgress({ progress: initialProgress, isSending: isSendi
               )}
             </div>
 
-            <div className="relative w-full bg-white/10 rounded-full h-3 overflow-hidden">
+            <div className="relative w-full bg-black/5 dark:bg-white/10 rounded-full h-3 overflow-hidden shadow-inner">
               <div
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-300 shadow-[0_0_15px_rgba(52,211,153,0.5)]"
+                className="absolute top-0 left-0 h-full bg-green-500 transition-all duration-300 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
                 style={{ width: `${transfer.progress}%` }}
               />
             </div>
-            <div className="flex justify-between mt-3 text-sm font-medium text-white/80">
+            <div className="flex justify-between mt-3 text-sm font-medium text-muted-foreground">
               <span>{transfer.progress}%</span>
               <span>{`${(transfer.sentSize / 1024 / 1024).toFixed(1)} / ${(transfer.totalSize / 1024 / 1024).toFixed(1)} MB`}</span>
             </div>
