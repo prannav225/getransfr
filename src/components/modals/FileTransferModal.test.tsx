@@ -3,8 +3,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { FileTransferModal } from './FileTransferModal';
 
 describe('FileTransferModal Component', () => {
-  const mockOnAccept = vi.fn();
-  const mockOnDecline = vi.fn();
+  const mockOnConfirm = vi.fn();
+  const mockOnCancel = vi.fn();
   const mockFiles = [
     { name: 'file1.txt', size: 1024, type: 'text/plain' },
     { name: 'file2.jpg', size: 2048 * 1024, type: 'image/jpeg' }
@@ -14,8 +14,8 @@ describe('FileTransferModal Component', () => {
     render(
       <FileTransferModal 
         files={mockFiles} 
-        onAccept={mockOnAccept} 
-        onDecline={mockOnDecline} 
+        onConfirm={mockOnConfirm} 
+        onCancel={mockOnCancel} 
       />
     );
     expect(screen.getByText(/Nearby device wants to share/i)).toBeInTheDocument();
@@ -27,8 +27,8 @@ describe('FileTransferModal Component', () => {
     render(
       <FileTransferModal 
         files={mockFiles} 
-        onAccept={mockOnAccept} 
-        onDecline={mockOnDecline} 
+        onConfirm={mockOnConfirm} 
+        onCancel={mockOnCancel} 
       />
     );
     // 1024 + 2048*1024 = 1KB + 2MB = ~2 MB
@@ -36,27 +36,27 @@ describe('FileTransferModal Component', () => {
     expect(screen.getAllByText('2 MB')[0]).toBeInTheDocument();
   });
 
-  it('calls onAccept when Accept Transfer button is clicked', () => {
+  it('calls onConfirm when Accept Transfer button is clicked', () => {
     render(
       <FileTransferModal 
         files={mockFiles} 
-        onAccept={mockOnAccept} 
-        onDecline={mockOnDecline} 
+        onConfirm={mockOnConfirm} 
+        onCancel={mockOnCancel} 
       />
     );
     fireEvent.click(screen.getByText('Accept Transfer'));
-    expect(mockOnAccept).toHaveBeenCalled();
+    expect(mockOnConfirm).toHaveBeenCalled();
   });
 
-  it('calls onDecline when Decline button is clicked', () => {
+  it('calls onCancel when Decline button is clicked', () => {
     render(
       <FileTransferModal 
         files={mockFiles} 
-        onAccept={mockOnAccept} 
-        onDecline={mockOnDecline} 
+        onConfirm={mockOnConfirm} 
+        onCancel={mockOnCancel} 
       />
     );
     fireEvent.click(screen.getByText('Decline'));
-    expect(mockOnDecline).toHaveBeenCalled();
+    expect(mockOnCancel).toHaveBeenCalled();
   });
 });
