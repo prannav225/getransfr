@@ -211,9 +211,10 @@
     -webkit-tap-highlight-color: transparent;
   }
   html {
-    @apply bg-background text-foreground scroll-smooth;
+    @apply text-foreground scroll-smooth;
     height: 100dvh;
     height: -webkit-fill-available;
+    background-color: #ffffff;
     scrollbar-gutter: stable;
     overflow-y: auto;
     overflow-x: hidden;
@@ -232,6 +233,7 @@
     font-size: var(--text-base);
     line-height: 1.5;
     overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
   button, a, .clickable {
     @apply cursor-pointer;

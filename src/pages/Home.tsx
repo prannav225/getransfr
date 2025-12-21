@@ -207,7 +207,7 @@ export function Home() {
     };
 
     return (
-        <div className="relative min-h-screen font-sans overflow-x-hidden">
+        <div className="relative min-h-[100dvh] font-sans overflow-x-hidden">
             <AnimatedBackground />
 
             {/* Overlays and Modals - High Priority */}
@@ -264,7 +264,7 @@ export function Home() {
 
             {/* Main Layout Container */}
             <motion.div 
-                className="container mx-auto p-4 sm:p-6 max-w-6xl relative z-10 min-h-screen flex flex-col pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+                className="container mx-auto p-4 sm:p-6 max-w-6xl relative z-10 min-h-[100dvh] flex flex-col pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"

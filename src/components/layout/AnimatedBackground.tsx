@@ -24,7 +24,7 @@ export const AnimatedBackground = () => {
   const isLight = theme === 'light' || (theme === 'system' && !isDark);
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-background">
+    <div className="fixed top-0 left-0 w-full h-[100dvh] z-0 overflow-hidden pointer-events-none bg-background">
       {/* 1. Base Mesh / Gradient Layer */}
       <div className={`absolute inset-0 transition-opacity duration-1000 ${
         isRetro ? 'opacity-20 bg-[radial-gradient(circle_at_50%_50%,rgba(255,176,0,0.1)_0%,transparent_70%)]' : 

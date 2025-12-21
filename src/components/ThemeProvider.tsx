@@ -25,6 +25,12 @@ export function ThemeProvider({
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   );
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const root = window.document.documentElement;
 
@@ -37,8 +43,6 @@ export function ThemeProvider({
         : "light";
     }
 
-    // Force color-scheme to match the APP'S chosen theme, not the system theme.
-    // This is the key to override the system navigation bar color on Android.
     const isDarkTheme = activeTheme === "dark" || activeTheme === "glass" || activeTheme === "cyberpunk" || activeTheme === "retro";
     
     root.classList.add(activeTheme);
@@ -46,8 +50,9 @@ export function ThemeProvider({
       root.classList.add("dark");
     }
     
-    // Set color-scheme on root style for system UI (nav bars, scrollbars)
-    root.style.colorScheme = isDarkTheme ? "dark" : "light";
+    // Set color-scheme on root element to force system UI theme matching.
+    // This is the main way to tell Android/iOS to theme system bars.
+    root.style.setProperty('color-scheme', isDarkTheme ? 'dark' : 'light');
 
     // Consolidated theme color mapping
     const themeColors: Record<string, string> = {
@@ -60,24 +65,24 @@ export function ThemeProvider({
 
     const color = themeColors[activeTheme] || themeColors.light;
 
-    // 1. Theme-color Meta Tag
+    // 1. Theme-color Meta Tag (Status Bar + Nav Bar color on some Androids)
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
-      meta = document.createElement('meta');
-      (meta as any).name = "theme-color";
-      document.head.appendChild(meta);
+        meta = document.createElement('meta');
+        (meta as any).name = "theme-color";
+        document.head.appendChild(meta);
     }
     meta.setAttribute('content', color);
 
-    // 2. Body Background (Crucial for safe areas/overscroll)
+    // 2. Body Background (Crucial for bleed/overscroll)
     document.body.style.backgroundColor = color;
 
     // 3. Apple Status Bar Style
     let appleMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
     if (!appleMeta) {
-      appleMeta = document.createElement('meta');
-      (appleMeta as any).name = "apple-mobile-web-app-status-bar-style";
-      document.head.appendChild(appleMeta);
+        appleMeta = document.createElement('meta');
+        (appleMeta as any).name = "apple-mobile-web-app-status-bar-style";
+        document.head.appendChild(appleMeta);
     }
     appleMeta.setAttribute('content', isDarkTheme ? "black-translucent" : "default");
   }, [theme]);
@@ -89,6 +94,10 @@ export function ThemeProvider({
       setTheme(theme);
     },
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
