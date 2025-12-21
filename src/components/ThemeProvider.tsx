@@ -42,9 +42,13 @@ export function ThemeProvider({
       root.classList.add(systemTheme);
     } else {
       root.classList.add(theme);
-      if (isDarkTheme) {
-        root.classList.add("dark");
-      }
+    }
+
+    // Sync color-scheme for system UI (status bars, scrollbars)
+    root.style.colorScheme = isDarkTheme ? "dark" : "light";
+
+    if (isDarkTheme) {
+      root.classList.add("dark");
     }
 
     // Consolidated theme color mapping
