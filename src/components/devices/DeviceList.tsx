@@ -101,7 +101,7 @@ export function DeviceList({
                   />
                 </div>
                 <div className="relative z-10 bg-black/5 dark:bg-white/5 p-5 sm:p-8 rounded-2xl sm:rounded-[var(--radius-xl)] backdrop-blur-md border border-border shadow-inner-light flex flex-col items-center">
-                  <img src="/G.png" alt="Getransfr" className="w-8 h-8 sm:w-12 sm:h-12 absolute -top-4 -right-4 grayscale opacity-50 rotate-12" />
+
                   <Users className="w-8 h-8 sm:w-12 sm:h-12 text-primary/40 animate-pulse" />
                 </div>
               </div>
