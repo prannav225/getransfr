@@ -30,26 +30,24 @@ export function ThemeProvider({
 
     root.classList.remove("light", "dark", "glass", "cyberpunk", "retro");
 
-    const isDarkTheme = theme === "dark" || theme === "glass" || theme === "cyberpunk" || theme === "retro";
-    
     let activeTheme = theme;
     if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
+      activeTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
         : "light";
-      activeTheme = systemTheme;
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.add(theme);
     }
 
-    // Sync color-scheme for system UI (status bars, scrollbars)
-    root.style.colorScheme = isDarkTheme ? "dark" : "light";
-
+    // Force color-scheme to match the APP'S chosen theme, not the system theme.
+    // This is the key to override the system navigation bar color on Android.
+    const isDarkTheme = activeTheme === "dark" || activeTheme === "glass" || activeTheme === "cyberpunk" || activeTheme === "retro";
+    
+    root.classList.add(activeTheme);
     if (isDarkTheme) {
       root.classList.add("dark");
     }
+    
+    // Set color-scheme on root style for system UI (nav bars, scrollbars)
+    root.style.colorScheme = isDarkTheme ? "dark" : "light";
 
     // Consolidated theme color mapping
     const themeColors: Record<string, string> = {
@@ -61,7 +59,6 @@ export function ThemeProvider({
     };
 
     const color = themeColors[activeTheme] || themeColors.light;
-    const isDark = activeTheme !== "light";
 
     // 1. Theme-color Meta Tag
     let meta = document.querySelector('meta[name="theme-color"]');
@@ -82,7 +79,7 @@ export function ThemeProvider({
       (appleMeta as any).name = "apple-mobile-web-app-status-bar-style";
       document.head.appendChild(appleMeta);
     }
-    appleMeta.setAttribute('content', isDark ? "black-translucent" : "default");
+    appleMeta.setAttribute('content', isDarkTheme ? "black-translucent" : "default");
   }, [theme]);
 
   const value = {

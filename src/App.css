@@ -38,7 +38,6 @@
 
 @layer base {
   :root {
-    color-scheme: light;
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 
@@ -102,7 +101,6 @@
   }
  
   .dark {
-    color-scheme: dark;
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
  
@@ -214,7 +212,7 @@
   }
   html {
     @apply bg-background text-foreground scroll-smooth;
-    height: 100vh;
+    height: 100dvh;
     height: -webkit-fill-available;
     scrollbar-gutter: stable;
     overflow-y: auto;
@@ -229,7 +227,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     height: 100%;
-    min-height: 100vh;
+    min-height: 100dvh;
     min-height: -webkit-fill-available;
     font-size: var(--text-base);
     line-height: 1.5;
