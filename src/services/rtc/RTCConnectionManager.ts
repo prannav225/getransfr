@@ -9,9 +9,8 @@ class RTCConnectionManager {
     }
 
     createPeerConnection(peerId: string): RTCPeerConnection {
-        if (this.peerConnections.has(peerId)) {
-            return this.peerConnections.get(peerId)!;
-        }
+        // Always ensure a fresh connection for a new signaling attempt
+        this.closePeerConnection(peerId);
 
         const peerConnection = new RTCPeerConnection({
             iceServers: [
@@ -20,35 +19,13 @@ class RTCConnectionManager {
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun3.l.google.com:19302' },
                 { urls: 'stun:stun4.l.google.com:19302' },
-                {
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:relay1.expressturn.com:3478',
-                    username: import.meta.env.VITE_TURN_USERNAME || '',
-                    credential: import.meta.env.VITE_TURN_CREDENTIAL || ''
-                }
             ],
-            iceCandidatePoolSize: 10,
-            iceTransportPolicy: 'all',
-            bundlePolicy: 'max-bundle',
-            rtcpMuxPolicy: 'require'
+            iceCandidatePoolSize: 10
         });
 
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
+                console.log('Sending ICE candidate to:', peerId);
                 this.socket.emit('rtc-ice-candidate', {
                     to: peerId,
                     candidate: event.candidate
@@ -57,6 +34,7 @@ class RTCConnectionManager {
         };
 
         peerConnection.oniceconnectionstatechange = () => {
+            console.log(`ICE Connection State (${peerId}):`, peerConnection.iceConnectionState);
             if (peerConnection.iceConnectionState === 'failed') {
                 console.error('ICE connection failed, attempting restart...');
                 peerConnection.restartIce();
@@ -74,6 +52,7 @@ class RTCConnectionManager {
     closePeerConnection(peerId: string): void {
         const peerConnection = this.peerConnections.get(peerId);
         if (peerConnection) {
+            console.log('Closing peer connection for:', peerId);
             peerConnection.close();
             this.peerConnections.delete(peerId);
         }

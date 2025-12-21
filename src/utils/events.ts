@@ -1,7 +1,7 @@
 type EventCallback = (detail: any) => void;
 
 class EventBus {
-    emit(event: string, detail: any) {
+    emit(event: string, detail?: any) {
         const customEvent = new CustomEvent(event, { detail });
         window.dispatchEvent(customEvent);
     }
@@ -15,11 +15,21 @@ class EventBus {
 
 export const eventBus = new EventBus();
 
-// Specific event constants
+// Standardized Event Names
 export const EVENTS = {
+    // UI/Signaling
     FILE_TRANSFER_REQUEST: 'file-transfer-request',
+    TEXT_TRANSFER_REQUEST: 'text-transfer-request',
     FILE_TRANSFER_ERROR: 'file-transfer-error',
     FILE_TRANSFER_COMPLETE: 'file-transfer-complete',
-    TEXT_TRANSFER_REQUEST: 'text-transfer-request',
+    
+    // Core Transfer Events (Receiver)
+    FILE_TRANSFER_START: 'file-transfer-start',
+    FILE_TRANSFER_PROGRESS: 'file-transfer-progress',
+    
+    // Core Transfer Events (Sender)
+    TRANSFER_STATS_UPDATE: 'transfer-stats-update',
+    
+    // Control
     TRANSFER_CANCEL: 'file-transfer-cancel',
 };

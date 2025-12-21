@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { FileProgress } from "../p2pService";
 import { eventBus, EVENTS } from "@/utils/events";
 
@@ -68,7 +67,7 @@ class RTCFileTransferManager {
             }
         }
 
-        eventBus.emit(EVENTS.FILE_TRANSFER_REQUEST + '-start', { peerId, totalSize });
+        eventBus.emit(EVENTS.FILE_TRANSFER_START, { peerId, totalSize });
     }
 
     async sendFile(peerId: string, file: File, dataChannel: RTCDataChannel): Promise<void> {
@@ -122,7 +121,7 @@ class RTCFileTransferManager {
             const progress = Math.round((sentSize / totalSize) * 100);
             callbacks.onProgress(progress);
 
-            eventBus.emit('transfer-stats-update', {
+            eventBus.emit(EVENTS.TRANSFER_STATS_UPDATE, {
                 peerId,
                 speed,
                 progress,
@@ -181,7 +180,7 @@ class RTCFileTransferManager {
         const speed = elapsed > 0 ? receivedSize / elapsed : 0;
         const progress = Math.round((receivedSize / totalSize) * 100);
 
-        eventBus.emit('file-transfer-progress', { peerId, progress, speed, receivedSize, totalSize });
+        eventBus.emit(EVENTS.FILE_TRANSFER_PROGRESS, { peerId, progress, speed, receivedSize, totalSize });
     }
 
     async saveFile(peerId: string, fileName: string): Promise<void> {

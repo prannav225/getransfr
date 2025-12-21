@@ -47,23 +47,38 @@ export function ThemeProvider({
       }
     }
 
-    // Update theme-color meta tag
+    // Consolidated theme color mapping
     const themeColors: Record<string, string> = {
       light: "#f8fafc",
-      dark: "#020817",
-      glass: "#00040d",
+      dark: "#020617",
+      glass: "#00050a",
       cyberpunk: "#03050a",
-      retro: "#050401"
+      retro: "#0c0a05"
     };
 
     const color = themeColors[activeTheme] || themeColors.light;
+    const isDark = activeTheme !== "light";
+
+    // 1. Theme-color Meta Tag
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement('meta');
       (meta as any).name = "theme-color";
-      document.getElementsByTagName('head')[0].appendChild(meta);
+      document.head.appendChild(meta);
     }
     meta.setAttribute('content', color);
+
+    // 2. Body Background (Crucial for safe areas/overscroll)
+    document.body.style.backgroundColor = color;
+
+    // 3. Apple Status Bar Style
+    let appleMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (!appleMeta) {
+      appleMeta = document.createElement('meta');
+      (appleMeta as any).name = "apple-mobile-web-app-status-bar-style";
+      document.head.appendChild(appleMeta);
+    }
+    appleMeta.setAttribute('content', isDark ? "black-translucent" : "default");
   }, [theme]);
 
   const value = {

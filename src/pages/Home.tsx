@@ -1,12 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Header } from '@/components/layout/Header';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { useDevices } from '@/hooks/useDevices';
 import { useFileTransfer } from '@/hooks/useFileTransfer';
 import { TransferProgress } from '../components/files/TransferProgress';
 import { FileTransferModal } from '@/components/modals/FileTransferModal';
-import { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
+import { useEffect, useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SendView } from '@/components/views/SendView';
@@ -19,6 +17,11 @@ import { eventBus, EVENTS } from '@/utils/events';
 
 export function Home() {
     const { currentDevice, connectedDevices } = useDevices();
+    const connectedDevicesRef = useRef(connectedDevices);
+    useEffect(() => {
+        connectedDevicesRef.current = connectedDevices;
+    }, [connectedDevices]);
+
     const { shareText } = useClipboard();
     const {
         selectedFiles,
@@ -50,6 +53,12 @@ export function Home() {
         deviceName: ''
     });
 
+    const [fileTransferRequest, setFileTransferRequest] = useState<{
+        files: any[];
+        handleAccept: () => void;
+        handleDecline: () => void;
+    } | null>(null);
+
     useEffect(() => {
         // Handle files shared from other apps via Web Share Target API
         if ('launchQueue' in window) {
@@ -73,30 +82,18 @@ export function Home() {
         }
 
         const handleTransferRequest = (data: any) => {
-            const { files, accept, decline } = data;
+            const { files, handleAccept, handleDecline } = data;
+
+            if (typeof handleAccept !== 'function') {
+                console.error('[Home] handleAccept is MISSING!', data);
+            }
+
             playSound('ding');
-
-            const modal = document.createElement('div');
-            document.body.appendChild(modal);
-
-            const root = createRoot(modal);
-            root.render(
-                <FileTransferModal
-                    files={files}
-                    onAccept={() => {
-                        accept();
-                        root.unmount();
-                        document.body.removeChild(modal);
-                        toast.success('Transfer accepted');
-                    }}
-                    onDecline={() => {
-                        decline();
-                        root.unmount();
-                        document.body.removeChild(modal);
-                        toast('Transfer declined');
-                    }}
-                />
-            );
+            setFileTransferRequest({ 
+                files, 
+                handleAccept, 
+                handleDecline 
+            });
         };
 
         const handleTransferError = (data: any) => {
@@ -106,7 +103,7 @@ export function Home() {
 
         const handleTextTransferRequest = (data: any) => {
             const { from, text } = data;
-            const sender = connectedDevices.find(d => d.socketId === from);
+            const sender = connectedDevicesRef.current.find(d => d.socketId === from);
             playSound('ding');
             setTextModal({
                 isOpen: true,
@@ -117,28 +114,19 @@ export function Home() {
             });
         };
 
-        // Auto-cleanup history older than 7 days
-        const cleanupHistory = () => {
-            const savedHistory = localStorage.getItem('transferHistory');
-            if (savedHistory) {
-                try {
-                    const history = JSON.parse(savedHistory);
-                    const sevenDaysAgo = new Date();
-                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                    
-                    const filteredHistory = history.filter((record: any) => {
-                        return new Date(record.timestamp) > sevenDaysAgo;
-                    });
-                    
-                    if (filteredHistory.length !== history.length) {
-                        localStorage.setItem('transferHistory', JSON.stringify(filteredHistory));
-                    }
-                } catch (e) {
-                    console.error('Failed to cleanup history:', e);
+        // Cleanup old history
+        const savedHistory = localStorage.getItem('transferHistory');
+        if (savedHistory) {
+            try {
+                const history = JSON.parse(savedHistory);
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                const filtered = history.filter((record: any) => new Date(record.timestamp) > sevenDaysAgo);
+                if (filtered.length !== history.length) {
+                    localStorage.setItem('transferHistory', JSON.stringify(filtered));
                 }
-            }
-        };
-        cleanupHistory();
+            } catch (e) { /* ignore */ }
+        }
 
         const handleTransferComplete = () => {
             if (Notification.permission === 'granted') {
@@ -160,7 +148,7 @@ export function Home() {
             unsubFileComplete();
             unsubTextTransfer();
         };
-    }, [connectedDevices]); // Add connectedDevices to deps to correctly find sender name
+    }, []); // Empty dependency array means these listeners are set once and remain stable
 
     // Stagger animation for children
     const containerVariants = {
@@ -219,9 +207,62 @@ export function Home() {
     };
 
     return (
-        <div className="relative min-h-screen font-sans">
+        <div className="relative min-h-screen font-sans overflow-x-hidden">
             <AnimatedBackground />
-            
+
+            {/* Overlays and Modals - High Priority */}
+            <div className="fixed inset-0 z-[100] pointer-events-none">
+                <AnimatePresence>
+                    {fileTransferRequest && (
+                        <div className="pointer-events-auto">
+                            <FileTransferModal
+                                files={fileTransferRequest.files}
+                                onConfirm={() => {
+                                    if (typeof fileTransferRequest.handleAccept === 'function') {
+                                        fileTransferRequest.handleAccept();
+                                    }
+                                    setFileTransferRequest(null);
+                                    toast.success('Transfer accepted');
+                                }}
+                                onCancel={() => {
+                                    if (typeof fileTransferRequest.handleDecline === 'function') {
+                                        fileTransferRequest.handleDecline();
+                                    }
+                                    setFileTransferRequest(null);
+                                    toast('Transfer declined');
+                                }}
+                            />
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            <AnimatePresence>
+                {textModal.isOpen && (
+                    <div className="fixed inset-0 z-[101]">
+                        <TextTransferModal
+                            mode={textModal.mode}
+                            deviceName={textModal.deviceName}
+                            initialText={textModal.text}
+                            onAction={(text) => {
+                                if (textModal.mode === 'send' && textModal.targetSocketId && text) {
+                                    shareText(textModal.targetSocketId, text);
+                                }
+                            }}
+                            onClose={() => setTextModal(prev => ({ ...prev, isOpen: false }))}
+                        />
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <TransferProgress
+                progress={progress}
+                isSending={isSending}
+                isPreparing={isPreparing}
+                onCancel={cancelTransfer || undefined}
+            />
+
+            {/* Main Layout Container */}
             <motion.div 
                 className="container mx-auto p-4 sm:p-6 max-w-6xl relative z-10 min-h-screen flex flex-col pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
                 variants={containerVariants}
@@ -236,8 +277,8 @@ export function Home() {
                     <Header currentDevice={currentDevice} />
                 </motion.div>
 
-                {/* Desktop/Tablet Grid - Elegant Cross-Fade */}
-                <div className="hidden lg:block w-full flex-1 relative min-h-0">
+                {/* View Container - Responsive Cross-Fade */}
+                <div className="flex-1 relative min-h-0 pt-1">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -246,7 +287,7 @@ export function Home() {
                             animate="center"
                             exit="exit"
                             transition={slideTransition}
-                            className="w-full h-full transform-gpu overflow-x-hidden pt-1 px-1"
+                            className="w-full h-full transform-gpu overflow-x-hidden px-1"
                         >
                             {activeTab === 'send' ? (
                                 <SendView 
@@ -274,86 +315,10 @@ export function Home() {
                         </motion.div>
                     </AnimatePresence>
                 </div>
-
-                {/* Mobile View - Elegant Cross-Fade */}
-                <motion.div 
-                    className="block lg:hidden flex-1 relative min-h-0 select-none transform-gpu"
-                >
-                     <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeTab}
-                            variants={slideVariants}
-                            initial="enter"
-                            animate="center"
-                            exit="exit"
-                            transition={slideTransition}
-                            className="h-full w-full overflow-x-hidden px-1"
-                        >
-                            {activeTab === 'send' ? (
-                                 <SendView 
-                                     currentDevice={currentDevice}
-                                     connectedDevices={connectedDevices}
-                                     handleSendFiles={handleSendFiles}
-                                     onShareText={(to, text) => {
-                                         const device = connectedDevices.find(d => d.socketId === to);
-                                         setTextModal({
-                                             isOpen: true,
-                                             mode: 'send',
-                                             text: text || '',
-                                             deviceName: device?.name || 'Unknown Device',
-                                             targetSocketId: to
-                                         });
-                                     }}
-                                     selectedFiles={selectedFiles}
-                                     handleFileSelect={handleFileSelect}
-                                     handleFileRemove={handleFileRemove}
-                                     isSending={isSending}
-                                 />
-                            ) : (
-                                <ReceiveView currentDevice={currentDevice} />
-                            )}
-                        </motion.div>
-                    </AnimatePresence>
-                </motion.div>
  
                 {/* Bottom Navigation */}
                 <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
             </motion.div>
-
-            <AnimatePresence>
-                {(isSending || progress > 0) && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 100 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 100 }}
-                        className="fixed bottom-24 left-0 right-0 z-50 p-4" // Lifted up to avoid nav overlap
-                    >
-                        <div className="max-w-xl mx-auto">
-                            <TransferProgress
-                                progress={progress}
-                                isSending={isSending}
-                                isPreparing={isPreparing}
-                                onCancel={cancelTransfer || undefined}
-                            />
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-            <AnimatePresence>
-                {textModal.isOpen && (
-                    <TextTransferModal
-                        mode={textModal.mode}
-                        deviceName={textModal.deviceName}
-                        initialText={textModal.text}
-                        onAction={(text) => {
-                            if (textModal.mode === 'send' && textModal.targetSocketId && text) {
-                                shareText(textModal.targetSocketId, text);
-                            }
-                        }}
-                        onClose={() => setTextModal(prev => ({ ...prev, isOpen: false }))}
-                    />
-                )}
-            </AnimatePresence>
         </div>
     );
 }

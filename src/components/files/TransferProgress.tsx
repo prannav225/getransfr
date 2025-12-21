@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { EVENTS } from '@/utils/events';
 
 interface TransferState {
   progress: number;
@@ -46,36 +47,38 @@ export function TransferProgress({
 
   useEffect(() => {
     // Receiver events
-    const handleTransferStart = (e: CustomEvent<{ peerId: string; totalSize: number }>) => {
-      setTransfers(prev => new Map(prev).set(e.detail.peerId, {
+    const handleTransferStart = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setTransfers(prev => new Map(prev).set(detail.peerId, {
         progress: 0,
         isSending: false,
-        peerId: e.detail.peerId,
+        peerId: detail.peerId,
         speed: 0,
-        totalSize: e.detail.totalSize,
+        totalSize: detail.totalSize,
         sentSize: 0
       }));
     };
 
-    const handleTransferProgress = (e: CustomEvent<{ peerId: string; progress: number; speed: number; receivedSize: number; totalSize: number }>) => {
+    const handleTransferProgress = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
       setTransfers(prev => {
-        const transfer = prev.get(e.detail.peerId);
+        const transfer = prev.get(detail.peerId);
         if (transfer) {
           const newMap = new Map(prev);
-          newMap.set(e.detail.peerId, {
+          newMap.set(detail.peerId, {
             ...transfer,
-            progress: e.detail.progress,
-            speed: e.detail.speed,
-            sentSize: e.detail.receivedSize,
-            totalSize: e.detail.totalSize || transfer.totalSize
+            progress: detail.progress,
+            speed: detail.speed,
+            sentSize: detail.receivedSize,
+            totalSize: detail.totalSize || transfer.totalSize
           });
 
           // Auto-close receiver progress when complete
-          if (e.detail.progress === 100) {
+          if (detail.progress === 100) {
             setTimeout(() => {
               setTransfers(current => {
                 const updated = new Map(current);
-                updated.delete(e.detail.peerId);
+                updated.delete(detail.peerId);
                 return updated;
               });
             }, 3000);
@@ -87,41 +90,43 @@ export function TransferProgress({
       });
     };
 
-    const handleTransferCancelled = (e: CustomEvent<{ peerId: string }>) => {
+    const handleTransferCancelled = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
       setTransfers(prev => {
         const newMap = new Map(prev);
-        newMap.delete(e.detail.peerId);
+        newMap.delete(detail.peerId);
         return newMap;
       });
     };
 
     // Sender events
-    const handleSenderStats = (e: CustomEvent<{ peerId: string; speed: number; progress: number; totalSize: number; sentSize: number }>) => {
+    const handleSenderStats = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
       setSenderState({
-        peerId: e.detail.peerId,
+        peerId: detail.peerId,
         isSending: true,
-        progress: e.detail.progress,
-        speed: e.detail.speed,
-        totalSize: e.detail.totalSize,
-        sentSize: e.detail.sentSize
+        progress: detail.progress,
+        speed: detail.speed,
+        totalSize: detail.totalSize,
+        sentSize: detail.sentSize
       });
     };
 
-    window.addEventListener('file-transfer-start', handleTransferStart as EventListener);
-    window.addEventListener('file-transfer-progress', handleTransferProgress as EventListener);
-    window.addEventListener('file-transfer-cancelled', handleTransferCancelled as EventListener);
-    window.addEventListener('transfer-stats-update', handleSenderStats as EventListener);
+    window.addEventListener(EVENTS.FILE_TRANSFER_START, handleTransferStart);
+    window.addEventListener(EVENTS.FILE_TRANSFER_PROGRESS, handleTransferProgress);
+    window.addEventListener(EVENTS.TRANSFER_CANCEL, handleTransferCancelled);
+    window.addEventListener(EVENTS.TRANSFER_STATS_UPDATE, handleSenderStats);
 
     return () => {
-      window.removeEventListener('file-transfer-start', handleTransferStart as EventListener);
-      window.removeEventListener('file-transfer-progress', handleTransferProgress as EventListener);
-      window.removeEventListener('file-transfer-cancelled', handleTransferCancelled as EventListener);
-      window.removeEventListener('transfer-stats-update', handleSenderStats as EventListener);
+      window.removeEventListener(EVENTS.FILE_TRANSFER_START, handleTransferStart);
+      window.removeEventListener(EVENTS.FILE_TRANSFER_PROGRESS, handleTransferProgress);
+      window.removeEventListener(EVENTS.TRANSFER_CANCEL, handleTransferCancelled);
+      window.removeEventListener(EVENTS.TRANSFER_STATS_UPDATE, handleSenderStats);
     };
   }, []);
 
   const handleReceiverCancel = async (peerId: string) => {
-    await window.dispatchEvent(new CustomEvent('file-transfer-cancel', {
+    window.dispatchEvent(new CustomEvent(EVENTS.TRANSFER_CANCEL, {
       detail: { peerId }
     }));
     setTransfers(prev => {
@@ -138,11 +143,13 @@ export function TransferProgress({
     }
   }, [isSendingProp]);
 
+  // If we are not sending and there are no incoming transfers, don't show anything
   if (!isSendingProp && transfers.size === 0) return null;
 
   return (
     <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-300">
       <div className="flex flex-col gap-6 max-w-md w-full mx-6">
+        {/* Sender View */}
         {isSendingProp && (
           <div className="relative overflow-hidden bg-glass-card rounded-[var(--radius-xl)] p-8 shadow-2xl text-card-foreground">
             <div className="flex items-center justify-between mb-6">
@@ -189,6 +196,7 @@ export function TransferProgress({
           </div>
         )}
 
+        {/* Receiver Views (Can be multiple) */}
         {Array.from(transfers.values()).map((transfer) => (
           <div key={transfer.peerId} className="relative overflow-hidden bg-glass-card rounded-[var(--radius-xl)] p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-500 text-card-foreground">
             <div className="flex items-center justify-between mb-6">

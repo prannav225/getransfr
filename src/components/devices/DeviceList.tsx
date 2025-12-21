@@ -126,50 +126,42 @@ export function DeviceList({
                   className="group relative p-3 lg:p-4 rounded-[var(--radius-lg)] bg-black/5 dark:bg-white/5 border border-border hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl flex items-center gap-3 sm:gap-4 text-card-foreground"
                 >
                   <div className="relative flex-none">
-                    <div className="relative group-hover:scale-110 transition-transform duration-500">
+                    <div className="relative group-hover:scale-105 transition-transform duration-500">
                         <img
                           src={device.avatar}
                           alt={device.name}
-                          className="w-12 h-12 sm:w-16 sm:h-16 rounded-[var(--radius-md)] lg:rounded-[var(--radius-lg)] ring-2 ring-primary/20 shadow-xl object-cover"
+                          className="w-9 h-9 sm:w-11 sm:h-11 rounded-full ring-1 ring-primary/20 shadow-md object-cover"
                         />
-                        {/* Status Badge on Avatar */}
-                        <div className="absolute -bottom-1 -right-1 flex items-center gap-1 bg-background/95 backdrop-blur-sm border border-border px-1.5 py-0.5 rounded-full shadow-sm">
-                           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-                           <span className="text-[8px] font-black uppercase tracking-tighter text-primary/80 leading-none">Live</span>
-                        </div>
+                        {/* Status Beacon - Minimalist */}
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background shadow-sm animate-pulse" />
                     </div>
                   </div>
                   
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-device-name text-foreground text-sm sm:text-base lg:text-xl truncate">
+                  <div className="flex-1 min-w-0 mx-1">
+                    <h3 className="text-device-name text-foreground text-sm sm:text-base lg:text-lg font-bold truncate leading-none">
                       {device.name}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                       <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                          <Smartphone className="w-3 h-3" />
-                          Visible on Wi-Fi
-                       </span>
-                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                     <button
                       disabled={selectedFiles.length === 0 || isSending}
                       onClick={(e) => { e.stopPropagation(); handleSendClick(device); }}
-                      className="h-10 sm:h-12 px-4 sm:px-6 lg:px-8 rounded-[var(--radius-md)] bg-primary text-primary-foreground text-xs sm:text-sm font-black shadow-lg shadow-primary/20 hover:scale-[1.05] hover:brightness-110 disabled:opacity-30 disabled:grayscale transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
+                      className="h-9 sm:h-10 px-3 sm:px-5 rounded-full bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 hover:scale-[1.05] hover:brightness-110 disabled:opacity-30 disabled:grayscale transition-all active:scale-95 flex items-center gap-2"
+                      title="Send Files"
                     >
-                        <Send className="w-4 h-4" />
-                        <span>Send Files</span>
+                        <Send className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline text-xs">Send Files</span>
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onShareText(device.socketId, '');
                       }}
-                      className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-[var(--radius-md)] bg-black/10 dark:bg-white/10 text-foreground border border-border hover:bg-black/20 dark:hover:bg-white/20 transition-all active:scale-95 group/btn shadow-sm"
+                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-primary/20 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 group/btn shadow-[0_0_15px_rgba(var(--primary),0.1)] hover:shadow-primary/20 ring-1 ring-primary/20"
                       title="Share Text"
                     >
-                      <ClipboardIcon className="w-4 h-4 sm:w-5 sm:h-5 group-hover/btn:scale-110 transition-transform" />
+                      <ClipboardIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover/btn:scale-110 transition-transform" />
                     </button>
                   </div>
                 </motion.div>

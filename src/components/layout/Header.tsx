@@ -41,50 +41,14 @@ export function Header({ currentDevice }: HeaderProps) {
   }, []);
 
   useEffect(() => {
-    // Update meta theme-color for PWA/Mobile browser status bar
-    const themeBgMap: Record<string, string> = {
-      light: "#f8fafc",
-      dark: "#020617",
-      glass: "#00050a",
-      cyberpunk: "#03050a",
-      retro: "#0c0a05",
-      minimalist: "#ffffff",
+    // Add transition class to html element for smooth theme changes
+    document.documentElement.classList.add("transition-colors");
+    document.documentElement.classList.add("duration-300");
+    return () => {
+      document.documentElement.classList.remove("transition-colors");
+      document.documentElement.classList.remove("duration-300");
     };
-
-    let themeName = theme;
-    if (theme === "system") {
-      themeName = window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
-    }
-
-    const themeColor = themeBgMap[themeName] || "#020617";
-
-    // Multiple ways to set theme color for better compatibility
-    let meta = document.querySelector(
-      'meta[name="theme-color"]'
-    ) as HTMLMetaElement;
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.name = "theme-color";
-      document.head.appendChild(meta);
-    }
-    meta.setAttribute("content", themeColor);
-
-    // Update body background color style too to help with overscroll colors
-    document.body.style.backgroundColor = themeColor;
-
-    // Also update apple-mobile-web-app-status-bar-style
-    let appleMeta = document.querySelector(
-      'meta[name="apple-mobile-web-app-status-bar-style"]'
-    ) as HTMLMetaElement;
-    if (!appleMeta) {
-      appleMeta = document.createElement("meta");
-      appleMeta.name = "apple-mobile-web-app-status-bar-style";
-      document.head.appendChild(appleMeta);
-    }
-    appleMeta.setAttribute("content", "black-translucent");
-  }, [theme]);
+  }, []);
 
   if (!mounted) {
     return <div className="h-[88px]" />; 
@@ -99,13 +63,13 @@ export function Header({ currentDevice }: HeaderProps) {
   ];
 
   const Brand = (
-    <div className="flex items-center gap-1.5 lg:gap-3 shrink-0">
+    <div className="flex items-center gap-2.5 lg:gap-4 shrink-0">
       <img
         src="/G.png"
         alt="Getransfr"
-        className="w-5 h-5 lg:w-8 lg:h-8 drop-shadow-sm transition-transform hover:scale-110"
+        className="w-8 h-8 lg:w-11 lg:h-11 drop-shadow-sm transition-all hover:scale-110"
       />
-      <h1 className="text-sm lg:text-lg text-brand bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+      <h1 className="text-lg lg:text-2xl text-brand bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
         Getransfr
       </h1>
     </div>
@@ -139,9 +103,9 @@ export function Header({ currentDevice }: HeaderProps) {
         <img
           src={currentDevice?.avatar}
           alt={currentDevice?.name}
-          className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5 lg:w-6 lg:h-6'} rounded-full ring-1 ring-primary/40 group-hover/pill:ring-primary/60 transition-all`}
+          className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5 lg:w-6 lg:h-6'} rounded-full ring-1 ring-primary/40 group-hover/pill:ring-primary/60 transition-all`}
         />
-        <div className={`absolute -bottom-0.5 -right-0.5 ${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-green-500 rounded-full border border-background shadow-xs group-hover/pill:scale-110 transition-transform`} />
+        <div className={`absolute -bottom-0.5 -right-0.5 ${isMobile ? 'w-2 h-2' : 'w-2 h-2'} bg-green-500 rounded-full border border-background shadow-xs group-hover/pill:scale-110 transition-transform`} />
       </div>
       <div className="flex flex-col min-w-0">
         {!isMobile && (
@@ -149,7 +113,7 @@ export function Header({ currentDevice }: HeaderProps) {
             You
           </span>
         )}
-        <span className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-device-name text-foreground truncate`}>
+        <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-device-name text-foreground truncate font-medium`}>
           {currentDevice?.name}
         </span>
       </div>
@@ -160,7 +124,7 @@ export function Header({ currentDevice }: HeaderProps) {
     <button
       onClick={() => {
         setIsMuted(!isMuted);
-        playSound("tap");
+        playSound("tap", true);
       }}
       className="p-1.5 lg:p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-all text-muted-foreground hover:text-primary shrink-0 active:scale-90"
       title={isMuted ? "Unmute" : "Mute"}

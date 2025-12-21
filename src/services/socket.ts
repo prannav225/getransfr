@@ -1,7 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SERVER_URL;
+let SOCKET_URL = import.meta.env.VITE_SERVER_URL;
+
+// Deep-link fix for mobile: If we're on a network IP but URL is localhost, swap it
+if (SOCKET_URL?.includes('localhost') && window.location.hostname !== 'localhost') {
+  SOCKET_URL = SOCKET_URL.replace('localhost', window.location.hostname);
+  console.log('[Socket] Detected network access, adjusting server URL to:', SOCKET_URL);
+}
 
 // Create a persistent device ID if not exists
 if (!localStorage.getItem('deviceId')) {
