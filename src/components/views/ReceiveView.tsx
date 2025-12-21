@@ -87,6 +87,9 @@ export function ReceiveView({ currentDevice }: ReceiveViewProps) {
               alt="Device Avatar"
               className="w-32 h-32 rounded-full shadow-2xl ring-4 ring-primary/20 relative z-10 bg-background"
              />
+             <div className="absolute -bottom-2 -left-2 w-8 h-8 p-1.5 bg-glass-card rounded-lg border border-white/20 z-20 shadow-lg">
+               <img src="/G.png" alt="Logo" className="w-full h-full object-contain" />
+             </div>
              <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-background z-20" />
           </motion.div>
         </div>

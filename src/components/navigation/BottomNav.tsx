@@ -18,8 +18,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ] as const;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-auto">
-      <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-glass-card shadow-glow dark:shadow-glow-dark border border-white/10 relative overflow-hidden backdrop-blur-xl">
+    <div className="fixed bottom-nav-safe left-1/2 -translate-x-1/2 z-50 w-auto">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-glass-card border border-white/10 relative overflow-hidden backdrop-blur-xl">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -38,7 +38,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               {isActive && (
                 <motion.div
                   layoutId="nav-pill"
-                  className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/30"
+                  className="absolute inset-0 bg-nav-active rounded-full"
                   transition={{ 
                     type: "spring", 
                     stiffness: 600, 
@@ -56,19 +56,19 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                     y: isActive ? -1 : 0
                   }}
                   transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                  className={`${isActive ? 'text-white' : 'text-muted-foreground group-hover:text-foreground'}`}
+                  className={`${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}
                 >
                   <Icon className={`w-5 h-5 ${isActive ? 'stroke-[3]' : 'stroke-[2]'}`} />
                 </motion.div>
 
                 <motion.span 
                   animate={{ 
-                    color: isActive ? '#ffffff' : 'var(--muted-foreground)',
+                    color: isActive ? 'hsl(var(--primary))' : 'var(--muted-foreground)',
                     scale: isActive ? 1 : 0.95,
                     opacity: isActive ? 1 : 0.8
                   }}
                   transition={{ duration: 0.2 }}
-                  className="font-bold tracking-tight text-sm sm:text-base selection:bg-transparent"
+                  className="text-device-name text-sm sm:text-base selection:bg-transparent"
                 >
                   {tab.label}
                 </motion.span>

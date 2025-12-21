@@ -60,7 +60,7 @@ export function SendView({
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex flex-col flex-1 lg:grid lg:grid-cols-12 gap-3 lg:gap-6 items-stretch lg:items-start min-h-0"
+        className="flex flex-col flex-1 lg:grid lg:grid-cols-12 gap-4 lg:gap-6 items-stretch lg:items-start min-h-0"
     >
       <motion.div variants={leftItemVariants} className="flex-none h-[42%] lg:h-full lg:col-span-6">
         <FileUpload

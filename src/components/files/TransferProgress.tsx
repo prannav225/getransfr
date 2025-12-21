@@ -13,10 +13,16 @@ interface TransferState {
 interface TransferProgressProps {
   progress: number;
   isSending: boolean;
+  isPreparing?: boolean;
   onCancel?: () => void;
 }
 
-export function TransferProgress({ progress: initialProgress, isSending: isSendingProp, onCancel }: TransferProgressProps) {
+export function TransferProgress({ 
+  progress: initialProgress, 
+  isSending: isSendingProp, 
+  isPreparing = false,
+  onCancel 
+}: TransferProgressProps) {
   const [transfers, setTransfers] = useState<Map<string, TransferState>>(new Map());
   const [senderState, setSenderState] = useState<TransferState | null>(null);
 
@@ -142,10 +148,16 @@ export function TransferProgress({ progress: initialProgress, isSending: isSendi
             <div className="flex items-center justify-between mb-6">
               <div>
                 <span className="text-[var(--text-lg)] font-bold block mb-1">
-                  {initialProgress === 100 ? 'Transfer Complete' : 'Sending Files...'}
+                  {isPreparing 
+                    ? 'Preparing Files...' 
+                    : initialProgress === 100 
+                      ? 'Transfer Complete' 
+                      : 'Sending Files...'}
                 </span>
                 <div className="text-[var(--text-sm)] text-muted-foreground">
-                  {senderState ? (
+                  {isPreparing ? (
+                    'This might take a moment for large folders'
+                  ) : senderState ? (
                     <>
                       {formatSpeed(senderState.speed)}
                       {initialProgress < 100 && ` • ${calculateETA(senderState.totalSize, senderState.sentSize, senderState.speed)} remaining`}

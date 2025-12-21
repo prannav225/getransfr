@@ -25,6 +25,7 @@ export function Home() {
         handleFileSelect,
         handleSendFiles,
         isSending,
+        isPreparing,
         progress,
         cancelTransfer,
         setSelectedFiles
@@ -71,8 +72,8 @@ export function Home() {
             });
         }
 
-        const handleTransferRequest = (e: CustomEvent) => {
-            const { files, accept, decline } = e.detail;
+        const handleTransferRequest = (data: any) => {
+            const { files, accept, decline } = data;
             playSound('ding');
 
             const modal = document.createElement('div');
@@ -87,9 +88,6 @@ export function Home() {
                         root.unmount();
                         document.body.removeChild(modal);
                         toast.success('Transfer accepted');
-                        
-                        // Show notification on completion (we'll need a way to track the current receiving transfer)
-                        // For now, simple success is fine.
                     }}
                     onDecline={() => {
                         decline();
@@ -101,13 +99,13 @@ export function Home() {
             );
         };
 
-        const handleTransferError = (e: CustomEvent) => {
-            const { message } = e.detail;
+        const handleTransferError = (data: any) => {
+            const { message } = data;
             toast.error(message);
         };
 
-        const handleTextTransferRequest = (e: CustomEvent) => {
-            const { from, text } = e.detail;
+        const handleTextTransferRequest = (data: any) => {
+            const { from, text } = data;
             const sender = connectedDevices.find(d => d.socketId === from);
             playSound('ding');
             setTextModal({
@@ -221,17 +219,20 @@ export function Home() {
     };
 
     return (
-        <div className="relative min-h-screen font-sans overflow-x-hidden">
+        <div className="relative min-h-screen font-sans">
             <AnimatedBackground />
             
             <motion.div 
-                className="container mx-auto p-3 sm:p-6 max-w-6xl relative z-10 h-full flex flex-col pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+                className="container mx-auto p-4 sm:p-6 max-w-6xl relative z-10 min-h-screen flex flex-col pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
             >
                 {/* Header is always visible */}
-                <motion.div variants={itemVariants} className="w-full mb-3 lg:mb-6">
+                <motion.div 
+                    variants={itemVariants} 
+                    className="w-full mb-3 lg:mb-6 sticky top-0 z-40 bg-transparent"
+                >
                     <Header currentDevice={currentDevice} />
                 </motion.div>
 
@@ -245,7 +246,7 @@ export function Home() {
                             animate="center"
                             exit="exit"
                             transition={slideTransition}
-                            className="w-full h-full transform-gpu"
+                            className="w-full h-full transform-gpu overflow-x-hidden pt-1 px-1"
                         >
                             {activeTab === 'send' ? (
                                 <SendView 
@@ -276,7 +277,7 @@ export function Home() {
 
                 {/* Mobile View - Elegant Cross-Fade */}
                 <motion.div 
-                    className="block lg:hidden flex-1 relative min-h-0 select-none transform-gpu overflow-hidden"
+                    className="block lg:hidden flex-1 relative min-h-0 select-none transform-gpu"
                 >
                      <AnimatePresence mode="wait">
                         <motion.div
@@ -286,7 +287,7 @@ export function Home() {
                             animate="center"
                             exit="exit"
                             transition={slideTransition}
-                            className="h-full w-full"
+                            className="h-full w-full overflow-x-hidden px-1"
                         >
                             {activeTab === 'send' ? (
                                  <SendView 
@@ -314,7 +315,7 @@ export function Home() {
                         </motion.div>
                     </AnimatePresence>
                 </motion.div>
-
+ 
                 {/* Bottom Navigation */}
                 <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
             </motion.div>
@@ -331,6 +332,7 @@ export function Home() {
                             <TransferProgress
                                 progress={progress}
                                 isSending={isSending}
+                                isPreparing={isPreparing}
                                 onCancel={cancelTransfer || undefined}
                             />
                         </div>

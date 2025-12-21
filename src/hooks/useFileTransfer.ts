@@ -10,6 +10,7 @@ export function useFileTransfer() {
   const { requestWakeLock, releaseWakeLock } = useWakeLock();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [cancelTransfer, setCancelTransfer] = useState<(() => void) | null>(null);
 
@@ -28,6 +29,7 @@ export function useFileTransfer() {
   };
 
   const createZipFile = async (files: File[]): Promise<File> => {
+    setIsPreparing(true);
     const zip = new JSZip();
 
     for (const file of files) {
@@ -40,7 +42,9 @@ export function useFileTransfer() {
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     const firstFileName = files[0].name;
     const zipName = files.length > 1 ? (files[0] as any).webkitRelativePath?.split('/')[0] || 'files' : firstFileName;
-    return new File([zipBlob], `${zipName}.zip`, { type: 'application/zip' });
+    const result = new File([zipBlob], `${zipName}.zip`, { type: 'application/zip' });
+    setIsPreparing(false);
+    return result;
   };
 
   const handleSendFiles = useCallback(async (targetDevice: Device) => {
@@ -99,6 +103,7 @@ export function useFileTransfer() {
           },
           onCancel: () => {
             setIsSending(false);
+            setIsPreparing(false);
             setProgress(0);
             setCancelTransfer(null);
             releaseWakeLock();
@@ -121,6 +126,7 @@ export function useFileTransfer() {
     handleFileSelect,
     handleSendFiles,
     isSending,
+    isPreparing,
     progress,
     cancelTransfer,
     setSelectedFiles

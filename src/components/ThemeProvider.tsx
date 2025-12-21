@@ -18,7 +18,7 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undef
 export function ThemeProvider({
   children,
   defaultTheme = "system",
-  storageKey = "vite-ui-theme",
+  storageKey = "getransfr-theme",
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
@@ -30,14 +30,15 @@ export function ThemeProvider({
 
     root.classList.remove("light", "dark", "glass", "cyberpunk", "retro");
 
-    const isDarkTheme = theme === "dark" || theme === "glass" || theme === "cyberpunk";
+    const isDarkTheme = theme === "dark" || theme === "glass" || theme === "cyberpunk" || theme === "retro";
     
+    let activeTheme = theme;
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
         .matches
         ? "dark"
         : "light";
-
+      activeTheme = systemTheme;
       root.classList.add(systemTheme);
     } else {
       root.classList.add(theme);
@@ -45,6 +46,24 @@ export function ThemeProvider({
         root.classList.add("dark");
       }
     }
+
+    // Update theme-color meta tag
+    const themeColors: Record<string, string> = {
+      light: "#f8fafc",
+      dark: "#020817",
+      glass: "#00040d",
+      cyberpunk: "#03050a",
+      retro: "#050401"
+    };
+
+    const color = themeColors[activeTheme] || themeColors.light;
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      (meta as any).name = "theme-color";
+      document.getElementsByTagName('head')[0].appendChild(meta);
+    }
+    meta.setAttribute('content', color);
   }, [theme]);
 
   const value = {
