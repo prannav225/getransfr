@@ -138,7 +138,7 @@ export function Header({ currentDevice }: HeaderProps) {
   );
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-2 lg:px-4 transition-all duration-300">
+    <div className="w-full max-w-6xl mx-auto px-2 lg:px-4 transition-all duration-300 app-header">
       {/* Mobile Layout: 2 Rows */}
       <div className="flex sm:hidden flex-col gap-2 p-3 bg-glass-card border border-white/10 rounded-[var(--radius-xl)] backdrop-blur-2xl">
         {/* Row 1: Logo & Theme */}
