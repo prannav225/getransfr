@@ -36,7 +36,6 @@ export function ThemeProvider({
 
     const root = window.document.documentElement;
 
-    // 1. Refresh classes
     root.classList.remove("light", "dark", "glass", "cyberpunk", "retro");
 
     let activeTheme = theme;
@@ -53,37 +52,41 @@ export function ThemeProvider({
       root.classList.add("dark");
     }
     
-    // 2. Force color-scheme STYLE property (Crucial for Android Nav Bar)
+    // Set color-scheme on root element for system UI theme matching.
     root.style.setProperty('color-scheme', isDarkTheme ? 'dark' : 'light');
 
-    // 3. Define mapping for system UI colors (Hex)
+    // Restore the "better" theme colors
     const themeColors: Record<string, string> = {
       light: "#f8fafc",
       dark: "#020617",
-      glass: "#010205",
-      cyberpunk: "#010205",
-      retro: "#0a0802"
+      glass: "#00050a",
+      cyberpunk: "#03050a",
+      retro: "#0c0a05"
     };
 
     const color = themeColors[activeTheme] || themeColors.light;
 
-    // 4. Update meta theme-color (Force refresh by removing and re-adding)
-    document.querySelectorAll('meta[name="theme-color"]').forEach(el => el.remove());
-    const meta = document.createElement('meta');
-    meta.name = "theme-color";
-    meta.content = color;
-    document.head.appendChild(meta);
+    // Standard meta update (not deleting the tag)
+    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+    if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = "theme-color";
+        document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', color);
 
-    // 5. Apply background to both HTML and Body (Ensures no white gaps)
-    root.style.backgroundColor = color;
+    // Sync backgrounds
     document.body.style.backgroundColor = color;
+    root.style.backgroundColor = color;
 
-    // 6. Apple Status Bar Style
-    document.querySelectorAll('meta[name="apple-mobile-web-app-status-bar-style"]').forEach(el => el.remove());
-    const appleMeta = document.createElement('meta');
-    appleMeta.name = "apple-mobile-web-app-status-bar-style";
-    appleMeta.content = isDarkTheme ? "black-translucent" : "default";
-    document.head.appendChild(appleMeta);
+    // Standard Apple meta update
+    let appleMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement | null;
+    if (!appleMeta) {
+        appleMeta = document.createElement('meta');
+        appleMeta.name = "apple-mobile-web-app-status-bar-style";
+        document.head.appendChild(appleMeta);
+    }
+    appleMeta.setAttribute('content', isDarkTheme ? "black-translucent" : "default");
 
   }, [theme, mounted]);
 
