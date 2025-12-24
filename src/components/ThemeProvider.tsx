@@ -32,8 +32,11 @@ export function ThemeProvider({
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
+
     const root = window.document.documentElement;
 
+    // 1. Refresh classes
     root.classList.remove("light", "dark", "glass", "cyberpunk", "retro");
 
     let activeTheme = theme;
@@ -50,42 +53,39 @@ export function ThemeProvider({
       root.classList.add("dark");
     }
     
-    // Set color-scheme on root element to force system UI theme matching.
-    // This is the main way to tell Android/iOS to theme system bars.
+    // 2. Force color-scheme STYLE property (Crucial for Android Nav Bar)
     root.style.setProperty('color-scheme', isDarkTheme ? 'dark' : 'light');
 
-    // Consolidated theme color mapping
+    // 3. Define mapping for system UI colors (Hex)
     const themeColors: Record<string, string> = {
       light: "#f8fafc",
       dark: "#020617",
-      glass: "#00050a",
-      cyberpunk: "#03050a",
-      retro: "#0c0a05"
+      glass: "#010205",
+      cyberpunk: "#010205",
+      retro: "#0a0802"
     };
 
     const color = themeColors[activeTheme] || themeColors.light;
 
-    // 1. Theme-color Meta Tag (Status Bar + Nav Bar color on some Androids)
-    let meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) {
-        meta = document.createElement('meta');
-        (meta as any).name = "theme-color";
-        document.head.appendChild(meta);
-    }
-    meta.setAttribute('content', color);
+    // 4. Update meta theme-color (Force refresh by removing and re-adding)
+    document.querySelectorAll('meta[name="theme-color"]').forEach(el => el.remove());
+    const meta = document.createElement('meta');
+    meta.name = "theme-color";
+    meta.content = color;
+    document.head.appendChild(meta);
 
-    // 2. Body Background (Crucial for bleed/overscroll)
+    // 5. Apply background to both HTML and Body (Ensures no white gaps)
+    root.style.backgroundColor = color;
     document.body.style.backgroundColor = color;
 
-    // 3. Apple Status Bar Style
-    let appleMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-    if (!appleMeta) {
-        appleMeta = document.createElement('meta');
-        (appleMeta as any).name = "apple-mobile-web-app-status-bar-style";
-        document.head.appendChild(appleMeta);
-    }
-    appleMeta.setAttribute('content', isDarkTheme ? "black-translucent" : "default");
-  }, [theme]);
+    // 6. Apple Status Bar Style
+    document.querySelectorAll('meta[name="apple-mobile-web-app-status-bar-style"]').forEach(el => el.remove());
+    const appleMeta = document.createElement('meta');
+    appleMeta.name = "apple-mobile-web-app-status-bar-style";
+    appleMeta.content = isDarkTheme ? "black-translucent" : "default";
+    document.head.appendChild(appleMeta);
+
+  }, [theme, mounted]);
 
   const value = {
     theme,
@@ -95,9 +95,7 @@ export function ThemeProvider({
     },
   };
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
@@ -108,9 +106,7 @@ export function ThemeProvider({
 
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext);
-
   if (context === undefined)
     throw new Error("useTheme must be used within a ThemeProvider");
-
   return context;
 };

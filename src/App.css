@@ -219,7 +219,7 @@
     @apply text-foreground scroll-smooth;
     height: 100dvh;
     height: -webkit-fill-available;
-    background-color: #ffffff;
+    background-color: hsl(var(--background));
     scrollbar-gutter: stable;
     overflow-y: auto;
     overflow-x: hidden;
