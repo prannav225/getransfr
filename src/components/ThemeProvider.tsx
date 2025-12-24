@@ -55,12 +55,12 @@ export function ThemeProvider({
     // Set color-scheme on root element for system UI theme matching.
     root.style.setProperty('color-scheme', isDarkTheme ? 'dark' : 'light');
 
-    // Restore the "better" theme colors
+    // Atmospheric theme colors for status bar integration
     const themeColors: Record<string, string> = {
       light: "#f8fafc",
       dark: "#020617",
-      glass: "#00050a",
-      cyberpunk: "#03050a",
+      glass: "#0a1220", // Deep Navy Glow
+      cyberpunk: "#051616", // Tech Teal Glow
       retro: "#0c0a05"
     };
 
