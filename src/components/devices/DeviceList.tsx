@@ -101,7 +101,6 @@ export function DeviceList({
                   />
                 </div>
                 <div className="relative z-10 bg-black/5 dark:bg-white/5 p-5 sm:p-8 rounded-2xl sm:rounded-[var(--radius-xl)] backdrop-blur-md border border-border shadow-inner-light flex flex-col items-center">
-
                   <Users className="w-8 h-8 sm:w-12 sm:h-12 text-primary/40 animate-pulse" />
                 </div>
               </div>
@@ -117,11 +116,8 @@ export function DeviceList({
               animate={{ opacity: 1 }}
               className="space-y-4 pr-1 overflow-y-auto custom-scrollbar overflow-x-hidden max-h-[60vh] lg:max-h-none"
             >
-              {uniqueDevices.map((device, index) => (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, x: -10 }}
-                  animate={{ opacity: 1, y: 0, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
+              {uniqueDevices.map((device) => (
+                <div
                   key={device.id}
                   className="group relative p-3 lg:p-4 rounded-[var(--radius-lg)] bg-black/5 dark:bg-white/5 border border-border hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl flex items-center gap-3 sm:gap-4 text-card-foreground"
                 >
@@ -164,7 +160,7 @@ export function DeviceList({
                       <ClipboardIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover/btn:scale-110 transition-transform" />
                     </button>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </motion.div>
           )}
