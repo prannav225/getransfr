@@ -52,6 +52,19 @@
 }
 </script>
 
+  <script>
+    (function () {
+      try {
+        const theme = localStorage.getItem('getransfr-theme') || 'system';
+        const isDark = theme === 'dark' || theme === 'glass' || theme === 'cyberpunk' || theme === 'retro' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) document.documentElement.classList.add('dark');
+        if (theme !== 'system') document.documentElement.classList.add(theme);
+        const colors = { dark: '#020617', glass: '#0a1220', cyberpunk: '#051616', retro: '#0c0a05', light: '#f8fafc' };
+        const color = colors[theme] || (isDark ? colors.dark : colors.light);
+        document.documentElement.style.backgroundColor = color;
+      } catch (e) { }
+    })();
+  </script>
 </head>
 
 <body>

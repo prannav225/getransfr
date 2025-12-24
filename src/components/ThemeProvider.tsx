@@ -98,8 +98,6 @@ export function ThemeProvider({
     },
   };
 
-  if (!mounted) return null;
-
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
       {children}

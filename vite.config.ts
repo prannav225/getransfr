@@ -110,7 +110,10 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
-          'vendor-utils': ['socket.io-client', 'framer-motion', 'lucide-react', 'date-fns', 'jszip'],
+          'vendor-framer': ['framer-motion'],
+          'vendor-socket': ['socket.io-client'],
+          'vendor-utils': ['lucide-react', 'date-fns'],
+          'vendor-zip': ['jszip'],
         },
       },
     },

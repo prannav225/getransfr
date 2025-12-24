@@ -1,14 +1,14 @@
 import { Header } from '@/components/layout/Header';
-import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { useDevices } from '@/hooks/useDevices';
 import { useFileTransfer } from '@/hooks/useFileTransfer';
 import { TransferProgress } from '../components/files/TransferProgress';
 import { FileTransferModal } from '@/components/modals/FileTransferModal';
-import { useEffect, useState, useRef } from 'react';
+import { lazy, Suspense, useEffect, useState, useRef } from 'react';
+const AnimatedBackground = lazy(() => import('@/components/layout/AnimatedBackground').then(m => ({ default: m.AnimatedBackground })));
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SendView } from '@/components/views/SendView';
-import { ReceiveView } from '@/components/views/ReceiveView';
+const SendView = lazy(() => import('@/components/views/SendView').then(m => ({ default: m.SendView })));
+const ReceiveView = lazy(() => import('@/components/views/ReceiveView').then(m => ({ default: m.ReceiveView })));
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { useClipboard } from '@/hooks/useClipboard';
 import { TextTransferModal } from '@/components/modals/TextTransferModal';
@@ -208,7 +208,9 @@ export function Home() {
 
     return (
         <div className="relative min-h-[100dvh] font-sans overflow-x-hidden">
-            <AnimatedBackground />
+            <Suspense fallback={<div className="fixed inset-0 bg-background" />}>
+                <AnimatedBackground />
+            </Suspense>
 
             {/* Overlays and Modals - High Priority */}
             <div className="fixed inset-0 z-[100] pointer-events-none">
@@ -279,7 +281,8 @@ export function Home() {
 
                 {/* View Container - Responsive Cross-Fade */}
                 <div className="flex-1 relative min-h-0 pt-1">
-                    <AnimatePresence mode="wait">
+                    <Suspense fallback={<div className="w-full h-48 bg-white/5 rounded-[var(--radius-xl)] animate-pulse" />}>
+                        <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
                             variants={slideVariants}
@@ -314,6 +317,7 @@ export function Home() {
                             )}
                         </motion.div>
                     </AnimatePresence>
+                    </Suspense>
                 </div>
  
                 {/* Bottom Navigation */}
