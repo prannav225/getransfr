@@ -17,7 +17,19 @@ interface FileSystemFileHandle {
 declare global {
     interface Window {
         showSaveFilePicker(options?: any): Promise<FileSystemFileHandle>;
+        showDirectoryPicker(options?: any): Promise<FileSystemDirectoryHandle>;
     }
+}
+
+
+interface FileSystemGetFileOptions {
+    create?: boolean;
+}
+
+interface FileSystemDirectoryHandle {
+    kind: 'directory';
+    name: string;
+    getFileHandle(name: string, options?: FileSystemGetFileOptions): Promise<FileSystemFileHandle>;
 }
 
 class RTCFileTransferManager {
@@ -30,6 +42,8 @@ class RTCFileTransferManager {
     private static BUFFER_HIGH_THRESHOLD = 12 * 1024 * 1024; // 12MB - Allow a larger pipe
     private sentSizes: Map<string, number> = new Map();
     private startTime: Map<string, number> = new Map();
+    private dirHandles: Map<string, FileSystemDirectoryHandle> = new Map();
+    private currentFileIndices: Map<string, number> = new Map();
 
     // Track partial transfers for resume capability
     // Map<fileId, { receivedSize, chunks }>
@@ -55,31 +69,104 @@ class RTCFileTransferManager {
     }
 
     async initializeReceiver(peerId: string, files: any[]): Promise<void> {
-        this.metadata.set(peerId, files);
+        // We will update the metadata with resolved names after conflict resolution
+        const resolvedFiles = [...files]; 
+        
         this.chunks.set(peerId, []);
         this.sentSizes.set(peerId, 0);
+        this.currentFileIndices.set(peerId, 0);
+
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
-        if ('showSaveFilePicker' in window && files.length === 1) {
+        // Try to use Directory Picker for native file handling + Conflict Resolution
+        if ('showDirectoryPicker' in window) {
+            try {
+                // Ask user for a destination folder
+                const dirHandle = await (window as any).showDirectoryPicker({});
+                this.dirHandles.set(peerId, dirHandle);
+
+                // Pre-flight check for conflicts
+                for (let i = 0; i < resolvedFiles.length; i++) {
+                    const file = resolvedFiles[i];
+                    try {
+                        // Check if file exists
+                        await dirHandle.getFileHandle(file.name);
+                        
+                        // If we are here, file exists. Prompt user.
+                        const decision = await this.promptConflict(peerId, file.name);
+                        
+                        if (decision === 'overwrite') {
+                            // Do nothing, we will overwrite
+                        } else if (decision === 'keep-both') {
+                            const extension = file.name.split('.').pop();
+                            const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.'));
+                            const hasExt = file.name.includes('.');
+                            const newName = hasExt 
+                                ? `${nameWithoutExt}_${Date.now()}.${extension}`
+                                : `${file.name}_${Date.now()}`;
+                            
+                            resolvedFiles[i] = { ...file, name: newName }; // Update metadata
+                        } else {
+                            // Cancel - for now we just treat as overwrite or we could implement skip
+                            // Implementing skip is complex without sender support. 
+                            eventBus.emit(EVENTS.TRANSFER_CANCEL, { peerId });
+                            return;
+                        }
+
+                    } catch (e: any) {
+                        // File not found, safe to proceed
+                        if (e.name !== 'NotFoundError' && e.name !== 'TypeMismatchError') console.warn(e);
+                    }
+                }
+
+                // Initialize the first stream
+                if (resolvedFiles.length > 0) {
+                    const firstFile = resolvedFiles[0];
+                    const fileHandle = await dirHandle.getFileHandle(firstFile.name, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    this.fileStreams.set(peerId, writable);
+                }
+
+            } catch (err) {
+                console.log('[RTC] Directory picker cancelled or failed, falling back to memory/legacy', err);
+                if ((err as Error).name === 'AbortError') {
+                    eventBus.emit(EVENTS.TRANSFER_CANCEL, { peerId });
+                    return;
+                }
+            }
+        } 
+        
+        // Fallback: Legacy Single File Save Picker
+        else if ('showSaveFilePicker' in window && files.length === 1) {
             try {
                 const file = files[0];
-                const handle = await window.showSaveFilePicker({
+                const handle = await (window as any).showSaveFilePicker({
                     suggestedName: file.name,
                 });
                 const writable = await handle.createWritable();
                 this.fileStreams.set(peerId, writable);
-            } catch (err) {
+            } catch {
                 console.log('[RTC] Save picker cancelled or failed, falling back to memory');
             }
         }
 
-        // Check if we can resume any of these files
-        // const dataChannel = (this as any).dataChannel; // We'll need access to DC - This line is problematic as dataChannel is not a class property.
-                                                        // Assuming this is a placeholder for future integration where dataChannel is accessible.
+        this.metadata.set(peerId, resolvedFiles); // Update with resolved names
+        
+        // Resume check logic (placeholder)
+        // ...
 
         eventBus.emit(EVENTS.FILE_TRANSFER_START, { peerId, totalSize });
     }
 
+    private async promptConflict(peerId: string, fileName: string): Promise<'overwrite' | 'keep-both' | 'cancel'> {
+        return new Promise((resolve) => {
+            eventBus.emit(EVENTS.CONFLICT_REQUEST, {
+                peerId,
+                fileName,
+                resolve
+            });
+        });
+    }
 
     async sendFile(peerId: string, file: File, dataChannel: RTCDataChannel): Promise<void> {
         return this.sendMesh([peerId], file, { [peerId]: dataChannel });
@@ -90,7 +177,7 @@ class RTCFileTransferManager {
         
         // 1. Resume Check (for mesh, we simplify to the lowest common denominator or fresh start)
         // For simplicity in mesh, we start from 0 unless it's a single peer
-        let offset = 0;
+        const offset = 0;
 
         // 2. Worker-Powered Reading
         if (!this.worker) {
@@ -211,8 +298,45 @@ class RTCFileTransferManager {
         }
 
         const totalSize = metadata.reduce((acc, file) => acc + file.size, 0);
-        let receivedSize = receivedSizeBefore + data.byteLength;
+        const receivedSize = receivedSizeBefore + data.byteLength;
         this.sentSizes.set(peerId, receivedSize);
+
+        // Check for file boundary crossing
+        const nextFileIndex = metadata.findIndex(f => {
+             // Calculate cumulative size up to this file
+             let accum = 0;
+             for(let i=0; i<metadata.indexOf(f)+1; i++) accum += metadata[i].size;
+             return receivedSize < accum;
+        });
+
+        // Loop handling: if nextFileIndex is -1, we are at the last file or done
+        const targetIndex = nextFileIndex === -1 ? metadata.length - 1 : nextFileIndex;
+        
+        const storedIndex = this.currentFileIndices.get(peerId) || 0;
+
+        if (targetIndex > storedIndex && this.dirHandles.has(peerId)) {
+            // WE CROSSED A BOUNDARY!
+            const dirHandle = this.dirHandles.get(peerId)!;
+            
+            // 1. Close current stream
+            if (stream) {
+                try { await stream.close(); } catch(e) { console.error('Error closing stream', e); }
+            }
+
+            // 2. Open new stream
+            const nextFile = metadata[targetIndex];
+            try {
+                console.log(`[RTC] Switching stream to next file: ${nextFile.name}`);
+                const fileHandle = await dirHandle.getFileHandle(nextFile.name, { create: true });
+                const writable = await fileHandle.createWritable();
+                this.fileStreams.set(peerId, writable);
+            } catch(e) {
+                console.error('Error opening next file stream', e);
+            }
+            this.currentFileIndices.set(peerId, targetIndex);
+        } else if (targetIndex > storedIndex) {
+             this.currentFileIndices.set(peerId, targetIndex);
+        }
 
         // Persistent update: Save periodically to Disk for true persistence
         if (receivedSize % (RTCFileTransferManager.CHUNK_SIZE * 20) === 0) {

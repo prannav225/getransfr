@@ -31,8 +31,8 @@ export function useFileTransfer() {
 // Zip logic removed – files are sent individually as a batch queue.
 
 
-  const handleSendFiles = useCallback(async (targets: Device | Device[]) => {
-    if (selectedFiles.length === 0 || isSending) {
+  const startTransfer = useCallback(async (targets: Device | Device[], files: File[]) => {
+    if (files.length === 0 || isSending) {
       return;
     }
 
@@ -47,19 +47,16 @@ export function useFileTransfer() {
 
     try {
       // Enrichment: Add path metadata for raw files if they have webkitRelativePath
-      const filesWithMetadata = selectedFiles.map(file => {
+      const filesWithMetadata = files.map(file => {
           if ((file as any).webkitRelativePath) {
               (file as any).path = (file as any).webkitRelativePath;
           }
           return file;
       });
 
-      // Always send raw files one‑by‑one (batch queue)
-      const filesToSend = filesWithMetadata;
-
       const cancel = await rtcService.sendFiles(
         socketIds,
-        filesToSend,
+        filesWithMetadata,
         {
           onProgress: (p) => {
             setProgress(p);
@@ -69,7 +66,15 @@ export function useFileTransfer() {
               setTimeout(() => {
                 setIsSending(false);
                 setCancelTransfer(null);
-                setSelectedFiles([]);
+                setSelectedFiles([]); // Clear selection on success? Or just leave it?
+                // If we are sending clipboard files, we probably shouldn't clear selectedFiles if they were separate.
+                // But startTransfer doesn't know if it's clipboard or not.
+                // Compatibility: handleSendFiles clears selectedFiles.
+                // We will move setSelectedFiles([]) to handleSendFiles's onComplete logic if possible, OR just clear it here safely.
+                // If files !== selectedFiles, maybe don't clear selectedFiles?
+                // Let's assume clear is fine for now or check equality.
+                if (files === selectedFiles) setSelectedFiles([]);
+                
                 releaseWakeLock();
               }, 2000);
             }
@@ -81,7 +86,7 @@ export function useFileTransfer() {
             setTimeout(() => {
               setIsSending(false);
               setCancelTransfer(null);
-              setSelectedFiles([]);
+              if (files === selectedFiles) setSelectedFiles([]);
               releaseWakeLock();
             }, 2000);
           },
@@ -113,6 +118,10 @@ export function useFileTransfer() {
     }
   }, [selectedFiles, isSending]);
 
+  const handleSendFiles = useCallback(async (targets: Device | Device[]) => {
+      await startTransfer(targets, selectedFiles);
+  }, [selectedFiles, startTransfer]);
+
   return {
     selectedFiles,
     handleFileSelect,
@@ -121,6 +130,7 @@ export function useFileTransfer() {
     isPreparing,
     progress,
     cancelTransfer,
-    setSelectedFiles
+    setSelectedFiles,
+    startTransfer
   };
 }

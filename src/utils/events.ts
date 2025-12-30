@@ -32,4 +32,7 @@ export const EVENTS = {
     
     // Control
     TRANSFER_CANCEL: 'file-transfer-cancel',
+    // New features
+    CLIPBOARD_RICH: 'clipboard-rich',
+    CONFLICT_REQUEST: 'conflict-request',
 };

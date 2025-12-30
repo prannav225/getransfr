@@ -8,7 +8,7 @@ interface DeviceListProps {
   currentDevice: Device | null;
   connectedDevices: Device[];
   onSendFiles: (targets: Device | Device[]) => Promise<void>;
-  onShareText: (to: string, text: string) => void;
+  onClipboardClick: (to: string) => void;
   selectedFiles: File[];
   isSending: boolean;
 }
@@ -17,7 +17,7 @@ export function DeviceList({
   currentDevice,
   connectedDevices,
   onSendFiles,
-  onShareText,
+  onClipboardClick,
   selectedFiles,
   isSending
 }: DeviceListProps) {
@@ -186,7 +186,7 @@ export function DeviceList({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onShareText(device.socketId, '');
+                        onClipboardClick(device.socketId);
                       }}
                       className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-primary/20 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 group/btn"
                       title="Share Text"

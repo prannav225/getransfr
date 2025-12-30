@@ -9,7 +9,10 @@ class RTCConnectionManager {
     }
 
     createPeerConnection(peerId: string): RTCPeerConnection {
-        // Always ensure a fresh connection for a new signaling attempt
+        // Only close if it's a completely new session request, but for renegotiation we might want to check existence?
+        // Actually, createPeerConnection is usually called when we initiate a FRESH session.
+        // For re-use, we should use getPeerConnection.
+        // But if the caller insists on create, we close old.
         this.closePeerConnection(peerId);
 
         const peerConnection = new RTCPeerConnection({
@@ -23,9 +26,15 @@ class RTCConnectionManager {
             iceCandidatePoolSize: 10
         });
 
-        peerConnection.onicecandidate = (event) => {
+        this.setupPeerConnectionListeners(peerConnection, peerId);
+        this.peerConnections.set(peerId, peerConnection);
+        return peerConnection;
+    }
+
+    private setupPeerConnectionListeners(pc: RTCPeerConnection, peerId: string) {
+        pc.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log('Sending ICE candidate to:', peerId);
+                // console.log('Sending ICE candidate to:', peerId);
                 this.socket.emit('rtc-ice-candidate', {
                     to: peerId,
                     candidate: event.candidate
@@ -33,16 +42,46 @@ class RTCConnectionManager {
             }
         };
 
-        peerConnection.oniceconnectionstatechange = () => {
-            console.log(`ICE Connection State (${peerId}):`, peerConnection.iceConnectionState);
-            if (peerConnection.iceConnectionState === 'failed') {
-                console.error('ICE connection failed, attempting restart...');
-                peerConnection.restartIce();
+        pc.oniceconnectionstatechange = () => {
+            console.log(`[RTC] ICE State (${peerId}):`, pc.iceConnectionState);
+            if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+                console.warn(`[RTC] Connection ${pc.iceConnectionState}, triggering Smart Retry...`);
+                // Debounce restart
+                setTimeout(() => {
+                    if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+                        this.triggerIceRestart(peerId);
+                    }
+                }, 2000);
             }
         };
 
-        this.peerConnections.set(peerId, peerConnection);
-        return peerConnection;
+        pc.onnegotiationneeded = async () => {
+            console.log(`[RTC] Negotiation needed for ${peerId}`);
+            try {
+                // Determine if we need restart based on state? 
+                // Usually just creating offer is enough, the browser internal state handles the rest.
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                this.socket.emit('rtc-offer', { to: peerId, offer });
+            } catch (err) {
+                console.error('[RTC] Negotiation failed:', err);
+            }
+        };
+    }
+
+    public async triggerIceRestart(peerId: string): Promise<void> {
+        const pc = this.peerConnections.get(peerId);
+        if (!pc) return;
+
+        console.log(`[RTC] Initiating ICE Restart for ${peerId}`);
+        try {
+            // Force restart
+            const offer = await pc.createOffer({ iceRestart: true });
+            await pc.setLocalDescription(offer);
+            this.socket.emit('rtc-offer', { to: peerId, offer });
+        } catch (error) {
+            console.error('[RTC] ICE Restart failed:', error);
+        }
     }
 
     getPeerConnection(peerId: string): RTCPeerConnection | undefined {

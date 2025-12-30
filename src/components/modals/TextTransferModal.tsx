@@ -19,12 +19,40 @@ export function TextTransferModal({ mode, deviceName, initialText = '', onAction
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      toast.success('Copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast.error('Failed to copy');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        toast.success('Copied to clipboard');
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        throw new Error('Clipboard API unavailable');
+      }
+    } catch {
+      // Fallback for non-secure contexts (HTTP)
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed"; // Avoid scrolling
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+            setCopied(true);
+            toast.success('Copied to clipboard');
+            setTimeout(() => setCopied(false), 2000);
+        } else {
+            throw new Error('Fallback failed');
+        }
+      } catch (fallbackErr) {
+        console.error('Copy failed:', fallbackErr);
+        toast.error('Failed to copy. Please copy manually.');
+      }
     }
   };
 

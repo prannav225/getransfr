@@ -12,6 +12,7 @@ const ReceiveView = lazy(() => import('@/components/views/ReceiveView').then(m =
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { useClipboard } from '@/hooks/useClipboard';
 import { TextTransferModal } from '@/components/modals/TextTransferModal';
+import { ConflictModal } from '@/components/modals/ConflictModal';
 import { useSound } from '@/hooks/useSound';
 import { eventBus, EVENTS } from '@/utils/events';
 
@@ -22,11 +23,12 @@ export function Home() {
         connectedDevicesRef.current = connectedDevices;
     }, [connectedDevices]);
 
-    const { shareText } = useClipboard();
+    const { shareText, retrieveClipboard } = useClipboard();
     const {
         selectedFiles,
         handleFileSelect,
         handleSendFiles,
+        startTransfer,
         isSending,
         isPreparing,
         progress,
@@ -38,6 +40,38 @@ export function Home() {
     const handleFileRemove = (index: number) => {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
         toast.success('File removed successfully');
+    };
+
+    const handleClipboardClick = async (to: string) => {
+        const data = await retrieveClipboard();
+        const device = connectedDevices.find(d => d.socketId === to);
+        
+        if (!data) {
+             // Fallback/Empty
+             setTextModal({
+                isOpen: true,
+                mode: 'send',
+                text: '',
+                deviceName: device?.name || 'Unknown Device',
+                targetSocketId: to
+            });
+            return;
+        }
+
+        if (data.type === 'image' && data.content instanceof Blob) {
+            if (confirm('Send image found in clipboard?')) {
+                const file = new File([data.content], `clipboard_${Date.now()}.png`, { type: data.content.type });
+                if (device) await startTransfer(device, [file]);
+            }
+        } else if (data.type === 'text' && typeof data.content === 'string') {
+            setTextModal({
+                isOpen: true,
+                mode: 'send',
+                text: data.content,
+                deviceName: device?.name || 'Unknown Device',
+                targetSocketId: to
+            });
+        }
     };
 
     const [textModal, setTextModal] = useState<{
@@ -256,6 +290,8 @@ export function Home() {
                     </div>
                 )}
             </AnimatePresence>
+            
+            <ConflictModal />
 
             <TransferProgress
                 progress={progress}
@@ -297,16 +333,7 @@ export function Home() {
                                     currentDevice={currentDevice}
                                     connectedDevices={connectedDevices}
                                     handleSendFiles={handleSendFiles}
-                                    onShareText={(to, text) => {
-                                        const device = connectedDevices.find(d => d.socketId === to);
-                                        setTextModal({
-                                            isOpen: true,
-                                            mode: 'send',
-                                            text: text || '',
-                                            deviceName: device?.name || 'Unknown Device',
-                                            targetSocketId: to
-                                        });
-                                    }}
+                                    onClipboardClick={handleClipboardClick}
                                     selectedFiles={selectedFiles}
                                     handleFileSelect={handleFileSelect}
                                     handleFileRemove={handleFileRemove}

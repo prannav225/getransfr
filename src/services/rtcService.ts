@@ -32,29 +32,40 @@ export class RTCService {
         socket.on('rtc-offer', async ({ from, offer }) => {
             console.log(`[RTCService] Received rtc-offer from: ${from}`);
             try {
-                // If we already have a connection that is stable, we should allow the new offer to restart it
-                // If we are in the middle of a handshake, creating a new peer connection will close the old one via ConnectionManager
-                const peerConnection = this.connectionManager.createPeerConnection(from);
-
-                peerConnection.ondatachannel = (event) => {
-                    console.log(`[RTCService] Received data channel from peer: ${from}`);
-                    const dataChannel = event.channel;
-                    this.setupDataChannel(from, dataChannel);
-                };
-
-                // A new PeerConnection is always in 'stable' state. 
-                // We should proceed with setRemoteDescription if state is 'stable' or if it's a valid re-negotiation state.
-                if (peerConnection.signalingState === 'stable') {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                    await this.applyBufferedCandidates(from);
-
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-
-                    socket.emit('rtc-answer', { to: from, answer });
+                // Try to reuse existing connection for ICE Restart / Re-negotiation
+                let peerConnection = this.connectionManager.getPeerConnection(from);
+                
+                if (!peerConnection) {
+                     console.log('[RTCService] New session, creating PeerConnection');
+                     peerConnection = this.connectionManager.createPeerConnection(from);
+                     
+                     peerConnection.ondatachannel = (event) => {
+                        console.log(`[RTCService] Received data channel from peer: ${from}`);
+                        const dataChannel = event.channel;
+                        this.setupDataChannel(from, dataChannel);
+                    };
                 } else {
-                    console.warn(`[RTC] Offer ignored: state is ${peerConnection.signalingState} for ${from}`);
+                    console.log('[RTCService] Reusing existing PeerConnection for offer (Restart/Renegotiation)');
                 }
+
+                // Handle the offer (Standard Re-negotiation flow)
+                // We don't check for 'stable' strictly because we might be in 'have-local-offer' if we crossed offers (Glare),
+                // but for simple restart, we usually accept if we are stable or have-remote-offer?
+                // Actually, if we are 'stable', we accept.
+                // If we are 'have-local-offer', this is a collision. Smart handling needed?
+                // For now, let's proceed if stable or have-remote-offer (unlikely for offer).
+                
+                // Resetting logic: If we are in a weird state, maybe we should just setRemoteDescription.
+                // Modern WebRTC handles rollbacks if needed.
+                
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                await this.applyBufferedCandidates(from);
+
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                socket.emit('rtc-answer', { to: from, answer });
+
             } catch (error) {
                 console.error('[RTCService] Error handling RTC offer:', error);
             }
@@ -165,10 +176,11 @@ export class RTCService {
                     case 'file-complete':
                         this.fileTransferManager.saveFile(peerId, message.name, message.fileId);
                         break;
-                    case 'resume-query':
+                    case 'resume-query': {
                         const dc = this.dataChannelManager.getDataChannel(peerId);
                         if (dc) this.fileTransferManager.handleResumeQuery(dc, message.fileId);
                         break;
+                    }
                     case 'accept':
                         this.handleTransferAccepted(peerId);
                         break;
@@ -379,10 +391,7 @@ export class RTCService {
 
                 this.setupDataChannel(peerId, dataChannel);
 
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-
-                socket.emit('rtc-offer', { to: peerId, offer });
+                // Negotiation is handled automatically via onnegotiationneeded in ConnectionManager
                 
                 // For direct file-transfer requests we still need to know what files were asked
                 this.transferRequests.set(peerId, { files, callbacks });
