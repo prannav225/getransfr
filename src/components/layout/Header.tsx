@@ -109,11 +109,11 @@ export function Header({ currentDevice }: HeaderProps) {
       </div>
       <div className="flex flex-col min-w-0">
         {!isMobile && (
-          <span className="text-status hidden lg:block">
-            You
+          <span className="text-status hidden lg:block opacity-60">
+            {currentDevice?.ip ? `${currentDevice.ip}` : 'Local Node'}
           </span>
         )}
-        <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-device-name text-foreground truncate font-medium`}>
+        <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-device-name text-foreground truncate font-medium flex items-center gap-1`}>
           {currentDevice?.name}
         </span>
       </div>

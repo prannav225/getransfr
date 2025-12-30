@@ -11,6 +11,13 @@ export class RTCService {
     private fileTransferManager: RTCFileTransferManager;
     private transferRequests: Map<string, { files: any[], callbacks: FileProgress }> = new Map();
     private candidateBuffer: Map<string, RTCIceCandidateInit[]> = new Map();
+    private meshSessions: Map<string, {
+        peerIds: string[];
+        readyPeers: Set<string>;
+        files: File[];
+        callbacks: FileProgress;
+        channels: Record<string, RTCDataChannel>;
+    }> = new Map();
 
     constructor() {
         this.connectionManager = new RTCConnectionManager(socket);
@@ -232,15 +239,63 @@ export class RTCService {
 
     private handleTransferAccepted(peerId: string): void {
         console.log('[RTCService] Sender: Remote peer accepted transfer:', peerId);
-        const pendingTransfer = this.transferRequests.get(peerId);
-        if (pendingTransfer) {
-            this.startFileTransfer(peerId, pendingTransfer.files, pendingTransfer.callbacks);
-            this.transferRequests.delete(peerId);
+        
+        // Find if this is part of a mesh session
+        let sessionToStart: any = null;
+        for (const [sessionId, session] of this.meshSessions.entries()) {
+            if (session.peerIds.includes(peerId)) {
+                session.readyPeers.add(peerId);
+                const dc = this.dataChannelManager.getDataChannel(peerId);
+                if (dc) session.channels[peerId] = dc;
+
+                // If everyone who was invited is ready (or declined/failed)
+                // We start when all original invitees are accounted for
+                if (session.readyPeers.size === session.peerIds.length) {
+                    sessionToStart = { ...session, sessionId };
+                }
+                break;
+            }
+        }
+
+        if (sessionToStart) {
+            this.meshSessions.delete(sessionToStart.sessionId);
+            this.startMeshTransfer(sessionToStart.peerIds, sessionToStart.files, sessionToStart.callbacks, sessionToStart.channels);
+        } else {
+            // Check legacy single transfer
+            const pendingTransfer = this.transferRequests.get(peerId);
+            if (pendingTransfer) {
+                this.startFileTransfer(peerId, pendingTransfer.files, pendingTransfer.callbacks);
+                this.transferRequests.delete(peerId);
+            }
+        }
+    }
+
+    private async startMeshTransfer(peerIds: string[], files: File[], callbacks: FileProgress, channels: Record<string, RTCDataChannel>): Promise<void> {
+        try {
+            console.log(`[RTCService] Coordinated Mesh Start for: ${peerIds.join(', ')}`);
+            
+            // Initialize all senders
+            peerIds.forEach(pid => this.fileTransferManager.initializeSender(pid, files, callbacks));
+
+            for (const file of files) {
+                await this.fileTransferManager.sendMesh(peerIds, file, channels);
+            }
+
+            console.log('[RTCService] Mesh transmit complete');
+            callbacks.onComplete();
+        } catch (error) {
+            console.error('[RTCService] Mesh transfer failed:', error);
+            callbacks.onError(error as Error);
+            peerIds.forEach(pid => this.cleanupPeer(pid));
         }
     }
 
     private handleTransferDeclined(peerId: string): void {
         console.log('[RTCService] Sender: Remote peer declined transfer:', peerId);
+        
+        // Remove from any mesh sessions
+        this.removeFromMeshSessions(peerId);
+
         const pendingTransfer = this.transferRequests.get(peerId);
         if (pendingTransfer) {
             pendingTransfer.callbacks.onCancel();
@@ -249,8 +304,26 @@ export class RTCService {
         this.cleanupPeer(peerId);
     }
 
+    private removeFromMeshSessions(peerId: string): void {
+        for (const [sessionId, session] of this.meshSessions.entries()) {
+            if (session.peerIds.includes(peerId)) {
+                session.peerIds = session.peerIds.filter(id => id !== peerId);
+                
+                // If the remaining peers are all ready, start it
+                if (session.peerIds.length > 0 && session.readyPeers.size === session.peerIds.length) {
+                    this.meshSessions.delete(sessionId);
+                    this.startMeshTransfer(session.peerIds, session.files, session.callbacks, session.channels);
+                } else if (session.peerIds.length === 0) {
+                    this.meshSessions.delete(sessionId);
+                }
+                break;
+            }
+        }
+    }
+
     private handleTransferCancelled(peerId: string): void {
         console.log('[RTCService] Transfer cancelled by peer:', peerId);
+        this.removeFromMeshSessions(peerId);
         const pendingTransfer = this.transferRequests.get(peerId);
         if (pendingTransfer) {
             pendingTransfer.callbacks.onCancel();
@@ -283,13 +356,22 @@ export class RTCService {
     }
 
     async sendFiles(peerIds: string[], files: File[], callbacks: FileProgress): Promise<() => void> {
-        console.log(`[RTCService] Initiating mesh transfer to peers: ${peerIds.join(', ')}`);
+        console.log(`[RTCService] Initiating mesh request to peers: ${peerIds.join(', ')}`);
         const cancels: (() => void)[] = [];
+        const sessionId = Math.random().toString(36).substring(7);
+
+        // Track the mesh session
+        this.meshSessions.set(sessionId, {
+            peerIds,
+            readyPeers: new Set(),
+            files,
+            callbacks,
+            channels: {}
+        });
 
         for (const peerId of peerIds) {
             try {
                 const peerConnection = this.connectionManager.createPeerConnection(peerId);
-
                 const dataChannel = peerConnection.createDataChannel('fileTransfer', {
                     ordered: true,
                     maxRetransmits: 30
@@ -301,12 +383,17 @@ export class RTCService {
                 await peerConnection.setLocalDescription(offer);
 
                 socket.emit('rtc-offer', { to: peerId, offer });
-
+                
+                // For direct file-transfer requests we still need to know what files were asked
                 this.transferRequests.set(peerId, { files, callbacks });
                 cancels.push(() => this.cancelTransfer(peerId));
             } catch (error) {
                 console.error(`[RTCService] Error initiating transfer to ${peerId}:`, error);
-                callbacks.onError(error as Error);
+                // Remove from mesh if failed to even start
+                const session = this.meshSessions.get(sessionId);
+                if (session) {
+                    session.peerIds = session.peerIds.filter(id => id !== peerId);
+                }
             }
         }
 

@@ -1,5 +1,6 @@
 import { FileProgress } from "../p2pService";
 import { eventBus, EVENTS } from "@/utils/events";
+import { storageManager } from "@/utils/StorageManager";
 
 // Define types for File System Access API
 interface FileSystemWritableFileStream extends WritableStream {
@@ -26,7 +27,6 @@ class RTCFileTransferManager {
     private callbacks: Map<string, FileProgress> = new Map();
     private totalSizes: Map<string, number> = new Map();
     private static CHUNK_SIZE = 64 * 1024; // 64KB - Optimal for WebRTC SCTP
-    private static BUFFER_LOW_THRESHOLD = 512 * 1024; // 512KB - Wait until buffer is almost empty
     private static BUFFER_HIGH_THRESHOLD = 12 * 1024 * 1024; // 12MB - Allow a larger pipe
     private sentSizes: Map<string, number> = new Map();
     private startTime: Map<string, number> = new Map();
@@ -39,6 +39,8 @@ class RTCFileTransferManager {
         return `${file.name}-${file.size}`;
     }
 
+    private worker: Worker | null = null;
+
     initializeSender(peerId: string, files: File[], callbacks: FileProgress): void {
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
         this.totalSizes.set(peerId, totalSize);
@@ -46,6 +48,10 @@ class RTCFileTransferManager {
         this.sentSizes.set(peerId, 0);
         this.callbacks.set(peerId, callbacks);
         this.startTime.set(peerId, Date.now());
+
+        if (!this.worker) {
+            this.worker = new Worker(new URL('./TransferWorker.ts', import.meta.url), { type: 'module' });
+        }
     }
 
     async initializeReceiver(peerId: string, files: any[]): Promise<void> {
@@ -76,124 +82,103 @@ class RTCFileTransferManager {
 
 
     async sendFile(peerId: string, file: File, dataChannel: RTCDataChannel): Promise<void> {
-        if (dataChannel.readyState !== 'open') {
-            eventBus.emit(EVENTS.FILE_TRANSFER_ERROR, { peerId, message: 'Connection to peer lost' });
-            throw new Error('Data channel not open');
-        }
+        return this.sendMesh([peerId], file, { [peerId]: dataChannel });
+    }
 
-        const callbacks = this.callbacks.get(peerId);
-        if (!callbacks) {
-            throw new Error('No callbacks found for peer');
-        }
-
-        // Handshake for Resume: Ask receiver for their current offset for this specific file
+    async sendMesh(peerIds: string[], file: File, channels: Record<string, RTCDataChannel>): Promise<void> {
         const fileId = this.getFileId(file);
-        dataChannel.send(JSON.stringify({ type: 'resume-query', fileId, name: file.name }));
+        
+        // 1. Resume Check (for mesh, we simplify to the lowest common denominator or fresh start)
+        // For simplicity in mesh, we start from 0 unless it's a single peer
+        let offset = 0;
 
-        // Wait for resume-response
-        const startOffset = await new Promise<number>((resolve) => {
-            const handleMsg = (event: MessageEvent) => {
-                try {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'resume-response' && msg.fileId === fileId) {
-                        dataChannel.removeEventListener('message', handleMsg);
-                        resolve(msg.offset || 0);
-                    }
-                } catch (e) { /* binary data, ignore */ }
+        // 2. Worker-Powered Reading
+        if (!this.worker) {
+            this.worker = new Worker(new URL('./TransferWorker.ts', import.meta.url), { type: 'module' });
+        }
+
+        let lastUiUpdate = 0;
+        const UI_UPDATE_INTERVAL = 150;
+
+        return new Promise((resolve, reject) => {
+            const cleanupWorker = () => {
+                if (this.worker) this.worker.onmessage = null;
             };
-            dataChannel.addEventListener('message', handleMsg);
-            // Timeout after 1s if no response (assume fresh start)
-            setTimeout(() => {
-                dataChannel.removeEventListener('message', handleMsg);
-                resolve(0);
-            }, 1000);
-        });
 
-        if (startOffset > 0) {
-            console.log(`[RTC Resume] Resuming ${file.name} from ${Math.round(startOffset/1024/1024)}MB`);
-            // Assuming 'toast' is globally available or imported elsewhere
-            // toast.success(`Resuming ${file.name}...`);
-        }
+            if (!this.worker) return reject('Worker init failed');
 
-        const totalSize = this.totalSizes.get(peerId) || 0;
-        let sentSize = (this.sentSizes.get(peerId) || 0) + startOffset;
-        let offset = startOffset;
+            this.worker.onmessage = async (e) => {
+                const { type, chunk, offset: currentOffset, totalSize } = e.data;
 
-        // Configure the browser's "High-Speed" threshold
-        dataChannel.bufferedAmountLowThreshold = RTCFileTransferManager.BUFFER_LOW_THRESHOLD;
+                if (type === 'chunk') {
+                    // BROADCAST: One read, Multi-send
+                    const sendPromises = Object.entries(channels).map(async ([pid, dc]) => {
+                        if (dc.readyState !== 'open') return;
 
-        // Use a Promise-based waiter for the buffer to clear
-        const waitForBufferLow = () => {
-            return new Promise<void>((resolve, reject) => {
-                if (dataChannel.bufferedAmount <= RTCFileTransferManager.BUFFER_LOW_THRESHOLD) {
-                    resolve();
-                    return;
-                }
+                        // Backpressure: Wait for this peer's specific buffer
+                        if (dc.bufferedAmount > RTCFileTransferManager.BUFFER_HIGH_THRESHOLD) {
+                            await new Promise<void>((res) => {
+                                const onLow = () => {
+                                    dc.removeEventListener('bufferedamountlow', onLow);
+                                    res();
+                                };
+                                dc.addEventListener('bufferedamountlow', onLow);
+                                setTimeout(res, 10000);
+                            });
+                        }
 
-                const onLow = () => {
-                    dataChannel.removeEventListener('bufferedamountlow', onLow);
-                    resolve();
-                };
-                
-                dataChannel.addEventListener('bufferedamountlow', onLow);
-                
-                // Safety timeout + state check
-                setTimeout(() => {
-                    dataChannel.removeEventListener('bufferedamountlow', onLow);
-                    if (dataChannel.readyState !== 'open') reject(new Error('Connection lost'));
-                    resolve(); 
-                }, 5000);
-            });
-        };
-
-        try {
-            while (offset < file.size) {
-                if (dataChannel.readyState !== 'open') throw new Error('Connection lost');
-
-                // If memory buffer is full, wait for the network to catch up
-                if (dataChannel.bufferedAmount > RTCFileTransferManager.BUFFER_HIGH_THRESHOLD) {
-                    await waitForBufferLow();
-                }
-
-                const slice = file.slice(offset, offset + RTCFileTransferManager.CHUNK_SIZE);
-                // Use modern Blob.arrayBuffer() - faster than FileReader
-                const chunk = await slice.arrayBuffer();
-
-                dataChannel.send(chunk);
-
-                offset += chunk.byteLength;
-                sentSize += chunk.byteLength;
-
-                // Throttled UI & Meta updates (every 50 chunks = ~3MB)
-                if (offset % (RTCFileTransferManager.CHUNK_SIZE * 50) === 0 || offset === file.size) {
-                    const progress = Math.round((sentSize / totalSize) * 100);
-                    const now = Date.now();
-                    const start = this.startTime.get(peerId) || now;
-                    const elapsed = (now - start) / 1000;
-                    const speed = elapsed > 0 ? sentSize / elapsed : 0;
-
-                    callbacks.onProgress(progress);
-                    this.sentSizes.set(peerId, sentSize);
-                    
-                    eventBus.emit(EVENTS.TRANSFER_STATS_UPDATE, {
-                        peerId, speed, progress, totalSize, sentSize
+                        try {
+                            dc.send(chunk);
+                        } catch (err) {
+                            console.error(`[RTC Mesh] Send failed to ${pid}`, err);
+                        }
                     });
-                }
-            }
 
-            dataChannel.send(JSON.stringify({
-                type: 'file-complete',
-                name: file.name,
-                fileId: fileId
-            }));
-        } catch (error) {
-            console.error('[RTC Turbo] Transfer failed:', error);
-            eventBus.emit(EVENTS.FILE_TRANSFER_ERROR, { 
-                peerId, 
-                message: error instanceof Error ? error.message : 'Transfer failed unexpectedly' 
+                    await Promise.all(sendPromises);
+                    
+                    // Stats & UI
+                    const now = Date.now();
+                    if (now - lastUiUpdate > UI_UPDATE_INTERVAL || currentOffset >= totalSize) {
+                        peerIds.forEach(pid => {
+                            const cb = this.callbacks.get(pid);
+                            const total = this.totalSizes.get(pid) || totalSize;
+                            const progress = Math.round((currentOffset / totalSize) * 100);
+                            const start = this.startTime.get(pid) || now;
+                            const speed = (currentOffset / ((now - start) / 1000));
+                            
+                            if (cb) cb.onProgress(progress);
+                            eventBus.emit(EVENTS.TRANSFER_STATS_UPDATE, {
+                                peerId: pid, speed, progress, totalSize: total, sentSize: currentOffset
+                            });
+                        });
+                        lastUiUpdate = now;
+                    }
+
+                    // Tell worker we are ready for next chunk
+                    this.worker?.postMessage({ type: 'next' });
+                } else if (type === 'complete') {
+                    cleanupWorker();
+                    peerIds.forEach(pid => {
+                        const dc = channels[pid];
+                        if (dc.readyState === 'open') {
+                             dc.send(JSON.stringify({ type: 'file-complete', name: file.name, fileId }));
+                        }
+                    });
+                    resolve();
+                } else if (type === 'error') {
+                    cleanupWorker();
+                    reject(e.data.error);
+                }
+            };
+
+            // Start the worker loop
+            this.worker.postMessage({
+                type: 'start-read',
+                file,
+                offset,
+                chunkSize: RTCFileTransferManager.CHUNK_SIZE
             });
-            throw error;
-        }
+        });
     }
 
 
@@ -204,6 +189,15 @@ class RTCFileTransferManager {
 
         if (!metadata) return;
 
+        // Populate resumeState for checkpointing
+        const receivedSizeBefore = this.sentSizes.get(peerId) || 0;
+        const currentFileIndex = metadata.findIndex(f => {
+            return receivedSizeBefore < f.size; 
+        });
+        
+        const currentFile = metadata[currentFileIndex] || metadata[0];
+        const fileId = this.getFileId(currentFile);
+        
         if (stream) {
             try {
                 await stream.write(data);
@@ -217,9 +211,13 @@ class RTCFileTransferManager {
         }
 
         const totalSize = metadata.reduce((acc, file) => acc + file.size, 0);
-        let receivedSize = this.sentSizes.get(peerId) || 0;
-        receivedSize += data.byteLength;
+        let receivedSize = receivedSizeBefore + data.byteLength;
         this.sentSizes.set(peerId, receivedSize);
+
+        // Persistent update: Save periodically to Disk for true persistence
+        if (receivedSize % (RTCFileTransferManager.CHUNK_SIZE * 20) === 0) {
+            storageManager.saveResumeState(fileId, { receivedSize });
+        }
 
         if (!this.startTime.has(peerId)) {
             this.startTime.set(peerId, Date.now());
@@ -268,13 +266,16 @@ class RTCFileTransferManager {
             URL.revokeObjectURL(url);
 
             this.chunks.set(peerId, []);
-            if (fileId) this.resumeState.delete(fileId);
+            if (fileId) {
+                this.resumeState.delete(fileId);
+                storageManager.clearResumeState(fileId);
+            }
         }
     }
 
     // Helper for Service to handle resume queries
-    handleResumeQuery(dataChannel: RTCDataChannel, fileId: string): void {
-        const state = this.resumeState.get(fileId);
+    async handleResumeQuery(dataChannel: RTCDataChannel, fileId: string): Promise<void> {
+        const state = await storageManager.getResumeState(fileId);
         dataChannel.send(JSON.stringify({
             type: 'resume-response',
             fileId,

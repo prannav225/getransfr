@@ -33,16 +33,12 @@ export function useDevices() {
         return;
       }
       
-      // Filter out current device and invalid devices
+      // Filter out invalid devices but keep the "self" check for the component to handle
       const validDevices = devices.filter(device => 
         device && 
         device.id && 
-        device.socketId && 
-        currentDevice && 
-        device.id !== currentDevice.id
+        device.socketId
       );
-      
-      console.log('Filtered devices:', validDevices);
       
       // Add avatars to devices
       const devicesWithAvatars = validDevices.map(device => ({
@@ -50,12 +46,7 @@ export function useDevices() {
         avatar: generateAvatar(device.name)
       }));
       
-      setConnectedDevices(prev => {
-        if (devicesWithAvatars.length > prev.length) {
-          if ('vibrate' in navigator) navigator.vibrate(10);
-        }
-        return devicesWithAvatars;
-      });
+      setConnectedDevices(devicesWithAvatars);
     };
     
     const handleDeviceDisconnected = (deviceId: string) => {
