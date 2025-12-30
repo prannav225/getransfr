@@ -47,10 +47,13 @@ export function useFileTransfer() {
     return result;
   };
 
-  const handleSendFiles = useCallback(async (targetDevice: Device) => {
+  const handleSendFiles = useCallback(async (targets: Device | Device[]) => {
     if (selectedFiles.length === 0 || isSending) {
       return;
     }
+
+    const targetDevices = Array.isArray(targets) ? targets : [targets];
+    const socketIds = targetDevices.map(d => d.socketId);
 
     setIsSending(true);
     setProgress(0);
@@ -59,12 +62,20 @@ export function useFileTransfer() {
     if ('vibrate' in navigator) navigator.vibrate([10, 50, 10]);
 
     try {
-      const filesToSend = selectedFiles.length > 1
+      // Enrichment: Add path metadata for raw files if they have webkitRelativePath
+      const filesWithMetadata = selectedFiles.map(file => {
+          if ((file as any).webkitRelativePath) {
+              (file as any).path = (file as any).webkitRelativePath;
+          }
+          return file;
+      });
+
+      const filesToSend = selectedFiles.length > 5 // Zip logic threshold
         ? [await createZipFile(selectedFiles)]
-        : selectedFiles;
+        : filesWithMetadata;
 
       const cancel = await rtcService.sendFiles(
-        targetDevice.socketId,
+        socketIds,
         filesToSend,
         {
           onProgress: (p) => {
@@ -72,7 +83,6 @@ export function useFileTransfer() {
             if (p === 100) {
               playSound('ding');
               if ('vibrate' in navigator) navigator.vibrate(50);
-              // Auto-close after a short delay when progress reaches 100%
               setTimeout(() => {
                 setIsSending(false);
                 setCancelTransfer(null);
@@ -82,7 +92,6 @@ export function useFileTransfer() {
             }
           },
           onComplete: () => {
-            // Ensure we show 100% before closing
             setProgress(100);
             playSound('ding');
             if ('vibrate' in navigator) navigator.vibrate(50);

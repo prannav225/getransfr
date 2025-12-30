@@ -156,7 +156,11 @@ export class RTCService {
                         this.handleMetadataMessage(peerId, message.files);
                         break;
                     case 'file-complete':
-                        this.fileTransferManager.saveFile(peerId, message.name);
+                        this.fileTransferManager.saveFile(peerId, message.name, message.fileId);
+                        break;
+                    case 'resume-query':
+                        const dc = this.dataChannelManager.getDataChannel(peerId);
+                        if (dc) this.fileTransferManager.handleResumeQuery(dc, message.fileId);
                         break;
                     case 'accept':
                         this.handleTransferAccepted(peerId);
@@ -278,31 +282,35 @@ export class RTCService {
         }
     }
 
-    async sendFiles(peerId: string, files: File[], callbacks: FileProgress): Promise<() => void> {
-        console.log(`[RTCService] Initiating transfer to peer: ${peerId}`);
-        try {
-            const peerConnection = this.connectionManager.createPeerConnection(peerId);
+    async sendFiles(peerIds: string[], files: File[], callbacks: FileProgress): Promise<() => void> {
+        console.log(`[RTCService] Initiating mesh transfer to peers: ${peerIds.join(', ')}`);
+        const cancels: (() => void)[] = [];
 
-            const dataChannel = peerConnection.createDataChannel('fileTransfer', {
-                ordered: true,
-                maxRetransmits: 30
-            });
+        for (const peerId of peerIds) {
+            try {
+                const peerConnection = this.connectionManager.createPeerConnection(peerId);
 
-            this.setupDataChannel(peerId, dataChannel);
+                const dataChannel = peerConnection.createDataChannel('fileTransfer', {
+                    ordered: true,
+                    maxRetransmits: 30
+                });
 
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
+                this.setupDataChannel(peerId, dataChannel);
 
-            socket.emit('rtc-offer', { to: peerId, offer });
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
 
-            this.transferRequests.set(peerId, { files, callbacks });
+                socket.emit('rtc-offer', { to: peerId, offer });
 
-            return () => this.cancelTransfer(peerId);
-        } catch (error) {
-            console.error('[RTCService] Error initiating transfer:', error);
-            callbacks.onError(error as Error);
-            return () => { };
+                this.transferRequests.set(peerId, { files, callbacks });
+                cancels.push(() => this.cancelTransfer(peerId));
+            } catch (error) {
+                console.error(`[RTCService] Error initiating transfer to ${peerId}:`, error);
+                callbacks.onError(error as Error);
+            }
         }
+
+        return () => cancels.forEach(cancel => cancel());
     }
 
     private cancelTransfer(peerId: string): void {

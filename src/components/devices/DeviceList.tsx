@@ -2,11 +2,12 @@ import { Users, Clipboard as ClipboardIcon, Send, Laptop, Smartphone, Tablet } f
 import { Device } from '@/types/device';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 
 interface DeviceListProps {
   currentDevice: Device | null;
   connectedDevices: Device[];
-  onSendFiles: (device: Device) => Promise<void>;
+  onSendFiles: (targets: Device | Device[]) => Promise<void>;
   onShareText: (to: string, text: string) => void;
   selectedFiles: File[];
   isSending: boolean;
@@ -20,6 +21,8 @@ export function DeviceList({
   selectedFiles,
   isSending
 }: DeviceListProps) {
+  const [selectedPeerIds, setSelectedPeerIds] = useState<Set<string>>(new Set());
+
   const uniqueDevices = Array.from(
     new Map(
       connectedDevices
@@ -33,19 +36,31 @@ export function DeviceList({
     ).values()
   );
 
-  const handleSendClick = async (device: Device) => {
-    if (selectedFiles.length === 0) {
-      toast.error('Please select files to send');
-      return;
-    }
-
-    try {
-      await onSendFiles(device);
-    } catch (error) {
-      console.error('Failed to establish connection:', error);
-      toast.error('Failed to establish connection');
-    }
+  const handleToggleSelect = (peerId: string) => {
+      setSelectedPeerIds(prev => {
+          const next = new Set(prev);
+          if (next.has(peerId)) next.delete(peerId);
+          else next.add(peerId);
+          return next;
+      });
   };
+
+  const handleSendToSelected = async () => {
+      if (selectedFiles.length === 0) {
+          toast.error('Please select files to send');
+          return;
+      }
+      const targets = uniqueDevices.filter(d => selectedPeerIds.has(d.id));
+      if (targets.length === 0) return;
+      try {
+          await onSendFiles(targets);
+          setSelectedPeerIds(new Set()); // Clear selection after sending
+      } catch (error) {
+          console.error('Failed to send files to selected devices:', error);
+          toast.error('Failed to send files to selected devices');
+      }
+  };
+
 
   return (
     <div className="relative bg-glass-card rounded-[var(--radius-xl)] p-4 lg:p-8 transition-all duration-300 h-full flex flex-col group/card text-card-foreground">
@@ -59,12 +74,25 @@ export function DeviceList({
             </div>
           </div>
           <div>
-            <h2 className="text-device-name text-lg sm:text-xl">Nearby Devices</h2>
-            <p className="text-status mt-0.5">
+            <h2 className="text-device-name text-lg sm:text-xl font-bold tracking-tight">Devices Mesh</h2>
+            <p className="text-status mt-0.5 opacity-80">
               {uniqueDevices.length} device{uniqueDevices.length !== 1 ? 's' : ''} found
             </p>
           </div>
         </div>
+
+        {selectedPeerIds.size > 0 && (
+            <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={handleSendToSelected}
+                disabled={selectedFiles.length === 0 || isSending}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full text-xs font-bold shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 disabled:opacity-50 transition-all"
+            >
+                <Send className="w-3 h-3" />
+                Send to {selectedPeerIds.size}
+            </motion.button>
+        )}
       </div>
 
       {/* Main Content */}
@@ -104,9 +132,9 @@ export function DeviceList({
                   <Users className="w-8 h-8 sm:w-12 sm:h-12 text-primary/40 animate-pulse" />
                 </div>
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-foreground">Scanning for devices...</h3>
+              <h3 className="text-base sm:text-lg font-bold text-foreground">Listening for peers...</h3>
               <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-[180px] sm:max-w-[200px] mx-auto leading-relaxed">
-                Connect devices to the same network to start sharing.
+                Start Getransfr on another device to swap files.
               </p>
             </motion.div>
           ) : (
@@ -114,12 +142,16 @@ export function DeviceList({
               key="list"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="space-y-4 pr-1 overflow-y-auto custom-scrollbar overflow-x-hidden max-h-[60vh] lg:max-h-none"
+              className="space-y-3 pr-1 overflow-y-auto custom-scrollbar overflow-x-hidden max-h-[60vh] lg:max-h-none"
             >
               {uniqueDevices.map((device) => (
                 <div
                   key={device.id}
-                  className="group relative p-3 lg:p-4 rounded-[var(--radius-lg)] bg-black/5 dark:bg-white/5 border border-border hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl flex items-center gap-3 sm:gap-4 text-card-foreground"
+                  onClick={() => handleToggleSelect(device.id)}
+                  className={`group relative p-3 lg:p-4 rounded-[var(--radius-lg)] border transition-all duration-300 cursor-pointer flex items-center gap-3 sm:gap-4 text-card-foreground
+                    ${selectedPeerIds.has(device.id) 
+                        ? 'bg-primary/10 border-primary/40 shadow-lg shadow-primary/5' 
+                        : 'bg-black/5 dark:bg-white/5 border-border hover:bg-black/10 dark:hover:bg-white/10'}`}
                 >
                   <div className="relative flex-none">
                     <div className="relative group-hover:scale-105 transition-transform duration-500">
@@ -129,7 +161,7 @@ export function DeviceList({
                           className="w-9 h-9 sm:w-11 sm:h-11 rounded-full ring-1 ring-primary/20 shadow-md object-cover"
                         />
                         {/* Status Beacon - Minimalist */}
-                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background shadow-sm animate-pulse" />
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background shadow-sm" />
                     </div>
                   </div>
                   
@@ -152,24 +184,20 @@ export function DeviceList({
 
                   <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                     <button
-                      disabled={selectedFiles.length === 0 || isSending}
-                      onClick={(e) => { e.stopPropagation(); handleSendClick(device); }}
-                      className="h-9 sm:h-10 px-3 sm:px-5 rounded-full bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 hover:scale-[1.05] hover:brightness-110 disabled:opacity-30 disabled:grayscale transition-all active:scale-95 flex items-center gap-2"
-                      title="Send Files"
-                    >
-                        <Send className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline text-xs">Send Files</span>
-                    </button>
-                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onShareText(device.socketId, '');
                       }}
-                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-primary/20 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 group/btn shadow-[0_0_15px_rgba(var(--primary),0.1)] hover:shadow-primary/20 ring-1 ring-primary/20"
+                      className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-primary/20 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 group/btn"
                       title="Share Text"
                     >
-                      <ClipboardIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover/btn:scale-110 transition-transform" />
+                      <ClipboardIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
+                    
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all
+                        ${selectedPeerIds.has(device.id) ? 'bg-primary border-primary' : 'border-primary/30'}`}>
+                        {selectedPeerIds.has(device.id) && <Send className="w-3 h-3 text-white" />}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -181,8 +209,8 @@ export function DeviceList({
       {/* Footer / Tip */}
       {uniqueDevices.length > 0 && (
         <div className="mt-6 pt-6 border-t border-border flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-50">
-            <span>Nearby and visible</span>
-            <div className="flex gap-1">
+            <span>Mesh Network Ready</span>
+            <div className="flex gap-1.5">
                 <Laptop className="w-3 h-3" />
                 <Smartphone className="w-3 h-3" />
                 <Tablet className="w-3 h-3" />
