@@ -74,7 +74,7 @@ export function DeviceList({
             </div>
           </div>
           <div>
-            <h2 className="text-device-name text-lg sm:text-xl font-bold tracking-tight">Devices Mesh</h2>
+            <h2 className="text-device-name text-lg sm:text-xl font-bold tracking-tight">Nearby Devices</h2>
             <p className="text-status mt-0.5 opacity-80">
               {uniqueDevices.length} device{uniqueDevices.length !== 1 ? 's' : ''} found
             </p>
@@ -132,9 +132,9 @@ export function DeviceList({
                   <Users className="w-8 h-8 sm:w-12 sm:h-12 text-primary/40 animate-pulse" />
                 </div>
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-foreground">Listening for peers...</h3>
+              <h3 className="text-base sm:text-lg font-bold text-foreground">Searching for devices...</h3>
               <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-[180px] sm:max-w-[200px] mx-auto leading-relaxed">
-                Start Getransfr on another device to swap files.
+                Open Getransfr on other devices to connect.
               </p>
             </motion.div>
           ) : (
