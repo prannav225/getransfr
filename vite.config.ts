@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -113,30 +113,8 @@ export default defineConfig({
           'vendor-framer': ['framer-motion'],
           'vendor-socket': ['socket.io-client'],
           'vendor-utils': ['lucide-react', 'date-fns'],
-          'vendor-zip': ['jszip'],
         },
       },
     },
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/tests/setup.ts',
-    css: true,
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src/tests/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/mockData',
-        '**/dist',
-        '**/._*',
-      ],
-    },
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**', '**/._*'],
   },
 });
