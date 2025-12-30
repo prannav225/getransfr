@@ -28,40 +28,48 @@ export function useClipboard() {
   }, []);
 
   const retrieveClipboard = useCallback(async (): Promise<{ type: 'image' | 'text'; content: Blob | string } | null> => {
+      console.log('Attempting to read clipboard...');
       try {
           // Chrome/Edge/Safari support navigator.clipboard.read()
-          // Check if 'read' method exists
           if (navigator.clipboard && navigator.clipboard.read) {
-              const items = await navigator.clipboard.read();
-              for (const item of items) {
-                  // Priority to Images
-                  const imageType = item.types.find(t => t.startsWith('image/'));
-                  if (imageType) {
-                      const blob = await item.getType(imageType);
-                      return { type: 'image', content: blob };
+              try {
+                  // Race condition: If read() hangs (permission prompt ignored), fail fast after 3s so UI doesn't freeze
+                  const readPromise = navigator.clipboard.read();
+                  const timeoutPromise = new Promise<never>((_, reject) => 
+                        setTimeout(() => reject(new Error('Clipboard read timeout')), 2000)
+                  );
+                  
+                  const items = await Promise.race([readPromise, timeoutPromise]) as ClipboardItem[];
+                  
+                  for (const item of items) {
+                      const imageType = item.types.find(t => t.startsWith('image/'));
+                      if (imageType) {
+                          const blob = await item.getType(imageType);
+                          return { type: 'image', content: blob };
+                      }
+                      if (item.types.includes('text/plain')) {
+                          const blob = await item.getType('text/plain');
+                          const text = await blob.text();
+                          if (text.trim()) return { type: 'text', content: text };
+                      }
                   }
-                  // Then Text
-                  if (item.types.includes('text/plain')) {
-                      const blob = await item.getType('text/plain');
-                      const text = await blob.text();
-                      if (text.trim()) return { type: 'text', content: text };
-                  }
+              } catch (readErr) {
+                  // If read() failed or timed out, fall through to text fallback
+                  console.warn('Clipboard.read() failed or timed out, falling back to text:', readErr);
+                  throw new Error('Fallback to text');
               }
           }
           throw new Error('Fallback to text');
       } catch (err) {
-          // Fallback for Firefox or permission denials: Try reading text directly
+          // Fallback: Try reading text directly
           try {
-              const text = await navigator.clipboard.readText();
-              if (text && text.trim()) return { type: 'text', content: text };
-              
-              // If we are here, we might not have permission or clipboard is empty/incompatible
-              // Inform user:
+              if (navigator.clipboard && navigator.clipboard.readText) {
+                 const text = await navigator.clipboard.readText();
+                 if (text && text.trim()) return { type: 'text', content: text };
+              }
               console.warn('Clipboard direct read failed or empty', err);
           } catch (e) {
               console.error('Clipboard text fallback failed', e);
-              // We return null here, which prompts the empty text modal in Home.tsx
-              // This acts as a manual "Paste Here" box.
           }
       }
       return null;
