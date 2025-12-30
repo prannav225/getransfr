@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Device } from '@/types/device';
 import rtcService from '@/services/rtcService';
-import JSZip from 'jszip';
+// import JSZip from 'jszip'; // Removed – batch queue sends files individually
 import { useSound } from './useSound';
 import { useWakeLock } from './useWakeLock';
 
@@ -28,24 +28,8 @@ export function useFileTransfer() {
     }
   };
 
-  const createZipFile = async (files: File[]): Promise<File> => {
-    setIsPreparing(true);
-    const zip = new JSZip();
+// Zip logic removed – files are sent individually as a batch queue.
 
-    for (const file of files) {
-      // Use webkitRelativePath if available to preserve folder structure, 
-      // otherwise fall back to the filename
-      const path = (file as any).webkitRelativePath || file.name;
-      zip.file(path, file);
-    }
-
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    const firstFileName = files[0].name;
-    const zipName = files.length > 1 ? (files[0] as any).webkitRelativePath?.split('/')[0] || 'files' : firstFileName;
-    const result = new File([zipBlob], `${zipName}.zip`, { type: 'application/zip' });
-    setIsPreparing(false);
-    return result;
-  };
 
   const handleSendFiles = useCallback(async (targets: Device | Device[]) => {
     if (selectedFiles.length === 0 || isSending) {
@@ -70,9 +54,8 @@ export function useFileTransfer() {
           return file;
       });
 
-      const filesToSend = selectedFiles.length > 5 // Zip logic threshold
-        ? [await createZipFile(selectedFiles)]
-        : filesWithMetadata;
+      // Always send raw files one‑by‑one (batch queue)
+      const filesToSend = filesWithMetadata;
 
       const cancel = await rtcService.sendFiles(
         socketIds,
