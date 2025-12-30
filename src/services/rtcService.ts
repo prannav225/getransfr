@@ -176,11 +176,7 @@ export class RTCService {
                     case 'file-complete':
                         this.fileTransferManager.saveFile(peerId, message.name, message.fileId);
                         break;
-                    case 'resume-query': {
-                        const dc = this.dataChannelManager.getDataChannel(peerId);
-                        if (dc) this.fileTransferManager.handleResumeQuery(dc, message.fileId);
-                        break;
-                    }
+
                     case 'accept':
                         this.handleTransferAccepted(peerId);
                         break;

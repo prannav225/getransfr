@@ -1,6 +1,6 @@
 import { FileProgress } from "../p2pService";
 import { eventBus, EVENTS } from "@/utils/events";
-import { storageManager } from "@/utils/StorageManager";
+
 
 // Define types for File System Access API
 interface FileSystemWritableFileStream extends WritableStream {
@@ -69,75 +69,15 @@ class RTCFileTransferManager {
     }
 
     async initializeReceiver(peerId: string, files: any[]): Promise<void> {
-        // We will update the metadata with resolved names after conflict resolution
-        const resolvedFiles = [...files]; 
-        
         this.chunks.set(peerId, []);
         this.sentSizes.set(peerId, 0);
         this.currentFileIndices.set(peerId, 0);
+        this.metadata.set(peerId, files);
 
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
-        // Try to use Directory Picker for native file handling + Conflict Resolution
-        if ('showDirectoryPicker' in window) {
-            try {
-                // Ask user for a destination folder
-                const dirHandle = await (window as any).showDirectoryPicker({});
-                this.dirHandles.set(peerId, dirHandle);
-
-                // Pre-flight check for conflicts
-                for (let i = 0; i < resolvedFiles.length; i++) {
-                    const file = resolvedFiles[i];
-                    try {
-                        // Check if file exists
-                        await dirHandle.getFileHandle(file.name);
-                        
-                        // If we are here, file exists. Prompt user.
-                        const decision = await this.promptConflict(peerId, file.name);
-                        
-                        if (decision === 'overwrite') {
-                            // Do nothing, we will overwrite
-                        } else if (decision === 'keep-both') {
-                            const extension = file.name.split('.').pop();
-                            const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.'));
-                            const hasExt = file.name.includes('.');
-                            const newName = hasExt 
-                                ? `${nameWithoutExt}_${Date.now()}.${extension}`
-                                : `${file.name}_${Date.now()}`;
-                            
-                            resolvedFiles[i] = { ...file, name: newName }; // Update metadata
-                        } else {
-                            // Cancel - for now we just treat as overwrite or we could implement skip
-                            // Implementing skip is complex without sender support. 
-                            eventBus.emit(EVENTS.TRANSFER_CANCEL, { peerId });
-                            return;
-                        }
-
-                    } catch (e: any) {
-                        // File not found, safe to proceed
-                        if (e.name !== 'NotFoundError' && e.name !== 'TypeMismatchError') console.warn(e);
-                    }
-                }
-
-                // Initialize the first stream
-                if (resolvedFiles.length > 0) {
-                    const firstFile = resolvedFiles[0];
-                    const fileHandle = await dirHandle.getFileHandle(firstFile.name, { create: true });
-                    const writable = await fileHandle.createWritable();
-                    this.fileStreams.set(peerId, writable);
-                }
-
-            } catch (err) {
-                console.log('[RTC] Directory picker cancelled or failed, falling back to memory/legacy', err);
-                if ((err as Error).name === 'AbortError') {
-                    eventBus.emit(EVENTS.TRANSFER_CANCEL, { peerId });
-                    return;
-                }
-            }
-        } 
-        
-        // Fallback: Legacy Single File Save Picker
-        else if ('showSaveFilePicker' in window && files.length === 1) {
+        // Try to use File System Access API for better performance on large files (Single File Only for now)
+        if ('showSaveFilePicker' in window && files.length === 1) {
             try {
                 const file = files[0];
                 const handle = await (window as any).showSaveFilePicker({
@@ -145,28 +85,15 @@ class RTCFileTransferManager {
                 });
                 const writable = await handle.createWritable();
                 this.fileStreams.set(peerId, writable);
-            } catch {
-                console.log('[RTC] Save picker cancelled or failed, falling back to memory');
+            } catch (err) {
+                console.log('[RTC] Save picker cancelled or failed, falling back to memory', err);
             }
         }
-
-        this.metadata.set(peerId, resolvedFiles); // Update with resolved names
-        
-        // Resume check logic (placeholder)
-        // ...
 
         eventBus.emit(EVENTS.FILE_TRANSFER_START, { peerId, totalSize });
     }
 
-    private async promptConflict(peerId: string, fileName: string): Promise<'overwrite' | 'keep-both' | 'cancel'> {
-        return new Promise((resolve) => {
-            eventBus.emit(EVENTS.CONFLICT_REQUEST, {
-                peerId,
-                fileName,
-                resolve
-            });
-        });
-    }
+
 
     async sendFile(peerId: string, file: File, dataChannel: RTCDataChannel): Promise<void> {
         return this.sendMesh([peerId], file, { [peerId]: dataChannel });
@@ -340,7 +267,7 @@ class RTCFileTransferManager {
 
         // Persistent update: Save periodically to Disk for true persistence
         if (receivedSize % (RTCFileTransferManager.CHUNK_SIZE * 20) === 0) {
-            storageManager.saveResumeState(fileId, { receivedSize });
+            // Checkpoint (disabled)
         }
 
         if (!this.startTime.has(peerId)) {
@@ -392,20 +319,12 @@ class RTCFileTransferManager {
             this.chunks.set(peerId, []);
             if (fileId) {
                 this.resumeState.delete(fileId);
-                storageManager.clearResumeState(fileId);
+                // Resume cleared
             }
         }
     }
 
-    // Helper for Service to handle resume queries
-    async handleResumeQuery(dataChannel: RTCDataChannel, fileId: string): Promise<void> {
-        const state = await storageManager.getResumeState(fileId);
-        dataChannel.send(JSON.stringify({
-            type: 'resume-response',
-            fileId,
-            offset: state ? state.receivedSize : 0
-        }));
-    }
+
 
     cleanup(peerId: string): void {
         const stream = this.fileStreams.get(peerId);

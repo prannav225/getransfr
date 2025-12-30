@@ -12,7 +12,6 @@ const ReceiveView = lazy(() => import('@/components/views/ReceiveView').then(m =
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { useClipboard } from '@/hooks/useClipboard';
 import { TextTransferModal } from '@/components/modals/TextTransferModal';
-import { ConflictModal } from '@/components/modals/ConflictModal';
 import { useSound } from '@/hooks/useSound';
 import { eventBus, EVENTS } from '@/utils/events';
 
@@ -28,7 +27,6 @@ export function Home() {
         selectedFiles,
         handleFileSelect,
         handleSendFiles,
-        startTransfer,
         isSending,
         isPreparing,
         progress,
@@ -43,6 +41,7 @@ export function Home() {
     };
 
     const handleClipboardClick = async (to: string) => {
+        console.log('[Home] handleClipboardClick for:', to);
         const data = await retrieveClipboard();
         const device = connectedDevices.find(d => d.socketId === to);
         
@@ -58,12 +57,7 @@ export function Home() {
             return;
         }
 
-        if (data.type === 'image' && data.content instanceof Blob) {
-            if (confirm('Send image found in clipboard?')) {
-                const file = new File([data.content], `clipboard_${Date.now()}.png`, { type: data.content.type });
-                if (device) await startTransfer(device, [file]);
-            }
-        } else if (data.type === 'text' && typeof data.content === 'string') {
+        if (data && data.type === 'text' && typeof data.content === 'string') {
             setTextModal({
                 isOpen: true,
                 mode: 'send',
@@ -291,8 +285,6 @@ export function Home() {
                 )}
             </AnimatePresence>
             
-            <ConflictModal />
-
             <TransferProgress
                 progress={progress}
                 isSending={isSending}
