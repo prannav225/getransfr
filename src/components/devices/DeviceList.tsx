@@ -137,6 +137,17 @@ export function DeviceList({
                     <h3 className="text-device-name text-foreground text-sm sm:text-base lg:text-lg font-bold truncate leading-none">
                       {device.name}
                     </h3>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                        {currentDevice?.ip === device.ip ? (
+                            <span className="px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-500 text-[10px] font-bold uppercase tracking-wider border border-green-500/20">
+                                Local Wifi
+                            </span>
+                        ) : (
+                            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-wider border border-amber-500/20">
+                                Remote
+                            </span>
+                        )}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1 sm:gap-2 shrink-0">

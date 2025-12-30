@@ -29,23 +29,22 @@ class RTCFileTransferManager {
     private startTime: Map<string, number> = new Map();
 
     private static CHUNK_SIZE = 64 * 1024; // 64KB chunks
-    private static MAX_BUFFERED_AMOUNT = 16 * 1024 * 1024; // 16MB buffer
+    private static MAX_BUFFERED_AMOUNT = 1 * 1024 * 1024; // 1MB buffer low threshold
+    private static BUFFER_HIGH_THRESHOLD = 8 * 1024 * 1024; // 8MB high threshold
 
     initializeSender(peerId: string, files: File[], callbacks: FileProgress): void {
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
         this.totalSizes.set(peerId, totalSize);
-        // Don't reset sentSizes if we're resuming
-        if (!this.sentSizes.has(peerId)) {
-            this.sentSizes.set(peerId, 0);
-        }
+        // Reset sent sizes for fresh start unless specifically resuming
+        this.sentSizes.set(peerId, 0);
         this.callbacks.set(peerId, callbacks);
-        if (!this.startTime.has(peerId)) {
-            this.startTime.set(peerId, Date.now());
-        }
+        this.startTime.set(peerId, Date.now());
     }
 
     async initializeReceiver(peerId: string, files: any[]): Promise<void> {
         this.metadata.set(peerId, files);
+        this.chunks.set(peerId, []);
+        this.sentSizes.set(peerId, 0);
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
         if ('showSaveFilePicker' in window && files.length === 1) {
@@ -57,13 +56,7 @@ class RTCFileTransferManager {
                 const writable = await handle.createWritable();
                 this.fileStreams.set(peerId, writable);
             } catch (err) {
-                if (!this.chunks.has(peerId)) {
-                    this.chunks.set(peerId, []);
-                }
-            }
-        } else {
-            if (!this.chunks.has(peerId)) {
-                this.chunks.set(peerId, []);
+                console.log('[RTC] Save picker cancelled or failed, falling back to memory');
             }
         }
 
@@ -72,6 +65,7 @@ class RTCFileTransferManager {
 
     async sendFile(peerId: string, file: File, dataChannel: RTCDataChannel): Promise<void> {
         if (dataChannel.readyState !== 'open') {
+            eventBus.emit(EVENTS.FILE_TRANSFER_ERROR, { peerId, message: 'Connection to peer lost' });
             throw new Error('Data channel not open');
         }
 
@@ -82,60 +76,84 @@ class RTCFileTransferManager {
 
         const totalSize = this.totalSizes.get(peerId) || 0;
         let sentSize = this.sentSizes.get(peerId) || 0;
+        const startOffset = 0; // Fresh file start
 
         const reader = new FileReader();
         const chunkSize = RTCFileTransferManager.CHUNK_SIZE;
         
-        // Support Resuming: Start from sentSize
-        let offset = sentSize; 
+        let offset = startOffset; 
 
-        while (offset < file.size) {
-            const slice = file.slice(offset, offset + chunkSize);
-            const chunk = await this.readFileChunk(reader, slice);
+        // Set high threshold for better throughput
+        dataChannel.bufferedAmountLowThreshold = RTCFileTransferManager.MAX_BUFFERED_AMOUNT;
 
-            while (dataChannel.bufferedAmount > RTCFileTransferManager.MAX_BUFFERED_AMOUNT) {
-                await new Promise(resolve => setTimeout(resolve, 50));
+        const waitForBuffer = () => {
+            return new Promise<void>((resolve, reject) => {
+                if (dataChannel.bufferedAmount <= RTCFileTransferManager.MAX_BUFFERED_AMOUNT) {
+                    resolve();
+                    return;
+                }
 
+                const checkInterval = setInterval(() => {
+                    if (dataChannel.readyState !== 'open') {
+                        clearInterval(checkInterval);
+                        reject(new Error('Connection lost during transfer'));
+                    }
+                    if (dataChannel.bufferedAmount <= RTCFileTransferManager.MAX_BUFFERED_AMOUNT) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 10);
+            });
+        };
+
+        try {
+            while (offset < file.size) {
                 if (dataChannel.readyState !== 'open') {
-                    // This is where we break on connection loss
-                    this.sentSizes.set(peerId, offset);
                     throw new Error('Connection lost');
+                }
+
+                // If buffer is too full, wait
+                if (dataChannel.bufferedAmount > RTCFileTransferManager.BUFFER_HIGH_THRESHOLD) {
+                    await waitForBuffer();
+                }
+
+                const slice = file.slice(offset, offset + chunkSize);
+                const chunk = await this.readFileChunk(reader, slice);
+
+                dataChannel.send(chunk);
+
+                offset += chunk.byteLength;
+                sentSize += chunk.byteLength;
+
+                const now = Date.now();
+                const start = this.startTime.get(peerId) || now;
+                const elapsed = (now - start) / 1000;
+                const speed = elapsed > 0 ? sentSize / elapsed : 0;
+                const progress = Math.round((sentSize / totalSize) * 100);
+
+                callbacks.onProgress(progress);
+                this.sentSizes.set(peerId, sentSize);
+
+                // Throttled stats update for performance
+                if (offset % (chunkSize * 10) === 0 || offset === file.size) {
+                    eventBus.emit(EVENTS.TRANSFER_STATS_UPDATE, {
+                        peerId, speed, progress, totalSize, sentSize
+                    });
                 }
             }
 
-            try {
-                dataChannel.send(chunk);
-            } catch (error) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                dataChannel.send(chunk);
-            }
-
-            offset += chunk.byteLength;
-            sentSize += chunk.byteLength;
-
-            const now = Date.now();
-            const start = this.startTime.get(peerId) || now;
-            const elapsed = (now - start) / 1000;
-            const speed = elapsed > 0 ? sentSize / elapsed : 0;
-
-            const progress = Math.round((sentSize / totalSize) * 100);
-            callbacks.onProgress(progress);
-
-            eventBus.emit(EVENTS.TRANSFER_STATS_UPDATE, {
-                peerId,
-                speed,
-                progress,
-                totalSize,
-                sentSize
+            dataChannel.send(JSON.stringify({
+                type: 'file-complete',
+                name: file.name
+            }));
+        } catch (error) {
+            console.error('[RTCFileTransferManager] sendFile error:', error);
+            eventBus.emit(EVENTS.FILE_TRANSFER_ERROR, { 
+                peerId, 
+                message: error instanceof Error ? error.message : 'Transfer failed unexpectedly' 
             });
-
-            this.sentSizes.set(peerId, sentSize);
+            throw error;
         }
-
-        dataChannel.send(JSON.stringify({
-            type: 'file-complete',
-            name: file.name
-        }));
     }
 
     private readFileChunk(reader: FileReader, slice: Blob): Promise<ArrayBuffer> {

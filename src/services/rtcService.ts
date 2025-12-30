@@ -179,6 +179,9 @@ export class RTCService {
     private async handleMetadataMessage(peerId: string, files: any[]): Promise<void> {
         console.log(`[RTCService] Receiver: Received metadata from ${peerId}`, files);
         
+        // Stabilization delay to ensure UI is ready and animations are done
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         let handled = false;
         const accepted = await new Promise<boolean>(resolve => {
             eventBus.emit(EVENTS.FILE_TRANSFER_REQUEST, {
@@ -195,13 +198,15 @@ export class RTCService {
                     resolve(false);
                 }
             });
-            
+
+            // Extended timeout for user response (2 minutes)
             setTimeout(() => {
                 if (!handled) {
+                    console.log('[RTCService] Transfer request timed out');
                     handled = true;
                     resolve(false);
                 }
-            }, 60000);
+            }, 120000);
         });
 
         const dataChannel = this.dataChannelManager.getDataChannel(peerId);

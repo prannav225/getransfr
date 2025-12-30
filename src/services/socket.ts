@@ -41,10 +41,8 @@ socket.on('connect', () => {
     socket.emit('deviceAnnounce');
   }
   
-  // Request device list after connection
-  setTimeout(() => {
-    socket.emit('requestDevices');
-  }, 1000);
+  // Request device list immediately after connection
+  socket.emit('requestDevices');
 });
 
 // Handle reconnection
@@ -56,10 +54,8 @@ socket.on('reconnect', () => {
     socket.emit('deviceAnnounce');
   }
   
-  // Request device list after reconnection
-  setTimeout(() => {
-    socket.emit('requestDevices');
-  }, 1000);
+  // Request device list immediately after reconnection
+  socket.emit('requestDevices');
 });
 
 // Handle connection errors

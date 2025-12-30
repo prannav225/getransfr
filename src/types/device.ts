@@ -3,4 +3,5 @@ export interface Device {
   name: string;
   avatar: string;
   socketId: string;
+  ip?: string;
 }
