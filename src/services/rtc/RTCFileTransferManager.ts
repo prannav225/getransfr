@@ -205,12 +205,8 @@ class RTCFileTransferManager {
 
         // Populate resumeState for checkpointing
         const receivedSizeBefore = this.sentSizes.get(peerId) || 0;
-        const currentFileIndex = metadata.findIndex(f => {
-            return receivedSizeBefore < f.size; 
-        });
-        
-        const currentFile = metadata[currentFileIndex] || metadata[0];
-        const fileId = this.getFileId(currentFile);
+
+
         
         if (stream) {
             try {
