@@ -28,9 +28,9 @@ class RTCFileTransferManager {
     private sentSizes: Map<string, number> = new Map();
     private startTime: Map<string, number> = new Map();
 
-    private static CHUNK_SIZE = 64 * 1024; // 64KB chunks
-    private static MAX_BUFFERED_AMOUNT = 1 * 1024 * 1024; // 1MB buffer low threshold
-    private static BUFFER_HIGH_THRESHOLD = 8 * 1024 * 1024; // 8MB high threshold
+    private static CHUNK_SIZE = 64 * 1024; // 64KB - Optimal for WebRTC SCTP
+    private static BUFFER_LOW_THRESHOLD = 512 * 1024; // 512KB - Wait until buffer is almost empty
+    private static BUFFER_HIGH_THRESHOLD = 12 * 1024 * 1024; // 12MB - Allow a larger pipe
 
     initializeSender(peerId: string, files: File[], callbacks: FileProgress): void {
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
@@ -63,6 +63,7 @@ class RTCFileTransferManager {
         eventBus.emit(EVENTS.FILE_TRANSFER_START, { peerId, totalSize });
     }
 
+
     async sendFile(peerId: string, file: File, dataChannel: RTCDataChannel): Promise<void> {
         if (dataChannel.readyState !== 'open') {
             eventBus.emit(EVENTS.FILE_TRANSFER_ERROR, { peerId, message: 'Connection to peer lost' });
@@ -76,66 +77,64 @@ class RTCFileTransferManager {
 
         const totalSize = this.totalSizes.get(peerId) || 0;
         let sentSize = this.sentSizes.get(peerId) || 0;
-        const startOffset = 0; // Fresh file start
+        let offset = 0;
 
-        const reader = new FileReader();
-        const chunkSize = RTCFileTransferManager.CHUNK_SIZE;
-        
-        let offset = startOffset; 
+        // Configure the browser's "High-Speed" threshold
+        dataChannel.bufferedAmountLowThreshold = RTCFileTransferManager.BUFFER_LOW_THRESHOLD;
 
-        // Set high threshold for better throughput
-        dataChannel.bufferedAmountLowThreshold = RTCFileTransferManager.MAX_BUFFERED_AMOUNT;
-
-        const waitForBuffer = () => {
+        // Use a Promise-based waiter for the buffer to clear
+        const waitForBufferLow = () => {
             return new Promise<void>((resolve, reject) => {
-                if (dataChannel.bufferedAmount <= RTCFileTransferManager.MAX_BUFFERED_AMOUNT) {
+                if (dataChannel.bufferedAmount <= RTCFileTransferManager.BUFFER_LOW_THRESHOLD) {
                     resolve();
                     return;
                 }
 
-                const checkInterval = setInterval(() => {
-                    if (dataChannel.readyState !== 'open') {
-                        clearInterval(checkInterval);
-                        reject(new Error('Connection lost during transfer'));
-                    }
-                    if (dataChannel.bufferedAmount <= RTCFileTransferManager.MAX_BUFFERED_AMOUNT) {
-                        clearInterval(checkInterval);
-                        resolve();
-                    }
-                }, 10);
+                const onLow = () => {
+                    dataChannel.removeEventListener('bufferedamountlow', onLow);
+                    resolve();
+                };
+                
+                dataChannel.addEventListener('bufferedamountlow', onLow);
+                
+                // Safety timeout + state check
+                setTimeout(() => {
+                    dataChannel.removeEventListener('bufferedamountlow', onLow);
+                    if (dataChannel.readyState !== 'open') reject(new Error('Connection lost'));
+                    resolve(); 
+                }, 5000);
             });
         };
 
         try {
             while (offset < file.size) {
-                if (dataChannel.readyState !== 'open') {
-                    throw new Error('Connection lost');
-                }
+                if (dataChannel.readyState !== 'open') throw new Error('Connection lost');
 
-                // If buffer is too full, wait
+                // If memory buffer is full, wait for the network to catch up
                 if (dataChannel.bufferedAmount > RTCFileTransferManager.BUFFER_HIGH_THRESHOLD) {
-                    await waitForBuffer();
+                    await waitForBufferLow();
                 }
 
-                const slice = file.slice(offset, offset + chunkSize);
-                const chunk = await this.readFileChunk(reader, slice);
+                const slice = file.slice(offset, offset + RTCFileTransferManager.CHUNK_SIZE);
+                // Use modern Blob.arrayBuffer() - faster than FileReader
+                const chunk = await slice.arrayBuffer();
 
                 dataChannel.send(chunk);
 
                 offset += chunk.byteLength;
                 sentSize += chunk.byteLength;
 
-                const now = Date.now();
-                const start = this.startTime.get(peerId) || now;
-                const elapsed = (now - start) / 1000;
-                const speed = elapsed > 0 ? sentSize / elapsed : 0;
-                const progress = Math.round((sentSize / totalSize) * 100);
+                // Throttled UI & Meta updates (every 50 chunks = ~3MB)
+                if (offset % (RTCFileTransferManager.CHUNK_SIZE * 50) === 0 || offset === file.size) {
+                    const progress = Math.round((sentSize / totalSize) * 100);
+                    const now = Date.now();
+                    const start = this.startTime.get(peerId) || now;
+                    const elapsed = (now - start) / 1000;
+                    const speed = elapsed > 0 ? sentSize / elapsed : 0;
 
-                callbacks.onProgress(progress);
-                this.sentSizes.set(peerId, sentSize);
-
-                // Throttled stats update for performance
-                if (offset % (chunkSize * 10) === 0 || offset === file.size) {
+                    callbacks.onProgress(progress);
+                    this.sentSizes.set(peerId, sentSize);
+                    
                     eventBus.emit(EVENTS.TRANSFER_STATS_UPDATE, {
                         peerId, speed, progress, totalSize, sentSize
                     });
@@ -147,7 +146,7 @@ class RTCFileTransferManager {
                 name: file.name
             }));
         } catch (error) {
-            console.error('[RTCFileTransferManager] sendFile error:', error);
+            console.error('[RTC Turbo] Transfer failed:', error);
             eventBus.emit(EVENTS.FILE_TRANSFER_ERROR, { 
                 peerId, 
                 message: error instanceof Error ? error.message : 'Transfer failed unexpectedly' 
@@ -156,13 +155,6 @@ class RTCFileTransferManager {
         }
     }
 
-    private readFileChunk(reader: FileReader, slice: Blob): Promise<ArrayBuffer> {
-        return new Promise((resolve, reject) => {
-            reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-            reader.onerror = reject;
-            reader.readAsArrayBuffer(slice);
-        });
-    }
 
     async addChunk(peerId: string, data: ArrayBuffer): Promise<void> {
         const stream = this.fileStreams.get(peerId);
