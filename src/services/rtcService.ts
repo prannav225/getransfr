@@ -156,7 +156,12 @@ export class RTCService {
                 try {
                     dataChannel.send(JSON.stringify({
                         type: 'metadata',
-                        files: pendingTransfer.files.map(f => ({ name: f.name, size: f.size, type: f.type }))
+                        files: pendingTransfer.files.map(f => ({ 
+                            name: f.name, 
+                            size: f.size, 
+                            type: f.type,
+                            path: (f as any).path || f.webkitRelativePath || f.name // Include path info
+                        }))
                     }));
                 } catch (err) {
                     console.error('[RTC] Failed to send metadata:', err);

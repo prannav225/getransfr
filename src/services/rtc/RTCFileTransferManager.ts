@@ -38,6 +38,7 @@ interface FileSystemDirectoryHandle {
     kind: 'directory';
     name: string;
     getFileHandle(name: string, options?: FileSystemGetFileOptions): Promise<FileSystemFileHandle>;
+    getDirectoryHandle(name: string, options?: FileSystemGetFileOptions): Promise<FileSystemDirectoryHandle>;
 }
 
 class RTCFileTransferManager {
@@ -105,9 +106,20 @@ class RTCFileTransferManager {
                     // Directory / Batch
                     this.dirHandles.set(peerId, fileSystemHandle);
                     
-                    // Open first file
+                    // Open first file (Create nested folders if needed)
                     const firstFile = files[0];
-                    const fileHandle = await fileSystemHandle.getFileHandle(firstFile.name, { create: true });
+                    const filePath = (firstFile as any).path || firstFile.webkitRelativePath || firstFile.name;
+                    
+                    let targetHandle = fileSystemHandle;
+                    const parts = filePath.split('/').filter((p: string) => p);
+                    const fileName = parts.pop()!;
+                    
+                    // Traverse/Create folders
+                    for (const part of parts) {
+                        targetHandle = await targetHandle.getDirectoryHandle(part, { create: true });
+                    }
+                    
+                    const fileHandle = await targetHandle.getFileHandle(fileName, { create: true });
                     const writable = await fileHandle.createWritable();
                     this.fileStreams.set(peerId, writable);
                      console.log('[RTC] Using provided Directory Handle for batch');
@@ -299,9 +311,21 @@ class RTCFileTransferManager {
 
             // 2. Open new stream
             const nextFile = metadata[targetIndex];
+            const filePath = nextFile.path || nextFile.name; // Metadata path
+            
             try {
-                console.log(`[RTC] Switching stream to next file: ${nextFile.name}`);
-                const fileHandle = await dirHandle.getFileHandle(nextFile.name, { create: true });
+                console.log(`[RTC] Switching stream to next file: ${filePath}`);
+                
+                let targetHandle = dirHandle;
+                const parts = filePath.split('/').filter((p: string) => p);
+                const fileName = parts.pop()!; // Last part is filename
+                
+                // Recursively get/create directory handle
+                for (const part of parts) {
+                    targetHandle = await targetHandle.getDirectoryHandle(part, { create: true });
+                }
+
+                const fileHandle = await targetHandle.getFileHandle(fileName, { create: true });
                 const writable = await fileHandle.createWritable();
                 this.fileStreams.set(peerId, writable);
             } catch(e) {
