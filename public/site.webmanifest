@@ -1,6 +1,7 @@
 {
   "name": "Getransfr",
   "short_name": "Getransfr",
+  "description": "Instant high-speed P2P file sharing on your local network.",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
