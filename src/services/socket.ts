@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 
-let SOCKET_URL = import.meta.env.VITE_SERVER_URL;
+let SOCKET_URL = (import.meta as any).env.VITE_SERVER_URL;
 
 // Deep-link fix for mobile: If we're on a network IP but URL is localhost, swap it
 if (SOCKET_URL?.includes('localhost') && window.location.hostname !== 'localhost') {

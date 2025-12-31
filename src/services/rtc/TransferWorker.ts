@@ -1,52 +1,43 @@
 /**
  * TransferWorker.ts
- * Streamlined file reader for ultra-fast P2P transfers.
+ * Reliable file chunker for 1-to-1 transfers.
  */
 
 self.onmessage = async (e: MessageEvent) => {
-    const { type, file, offset: startOffset, chunkSize } = e.data;
+    const { type, file, offset, chunkSize } = e.data;
 
-    if (type === 'start') {
-        let offset = startOffset;
-        const totalSize = file.size;
-        let paused = false;
-
-        // Command listener for this specific loop
-        const cmdListener = (msg: MessageEvent) => {
-            if (msg.data.type === 'next') paused = false;
-            if (msg.data.type === 'stop') offset = totalSize; // End the loop
-        };
-        self.addEventListener('message', cmdListener);
-
+    if (type === 'read') {
         try {
-            while (offset < totalSize) {
-                if (paused) {
-                    // Small yield for thread responsiveness, but no fixed delay
-                    await new Promise(r => setTimeout(r, 0));
-                    continue;
-                }
-
-                const end = Math.min(offset + chunkSize, totalSize);
-                const chunk = await file.slice(offset, end).arrayBuffer();
-                
-                // If stopped while reading
-                if (offset >= totalSize) break;
-
-                (self as any).postMessage({
-                    type: 'chunk',
-                    chunk,
-                    offset,
-                    totalSize
-                }, [chunk]);
-
-                offset += chunk.byteLength;
-                paused = true; // Wait for drain from main thread
+            // Calculate slice boundaries
+            const start = offset;
+            const end = Math.min(start + chunkSize, file.size);
+            
+            // Check for end of file
+            if (start >= file.size) {
+                (self as any).postMessage({ type: 'complete' });
+                return;
             }
-            (self as any).postMessage({ type: 'complete' });
+
+            // Read the actual slice
+            const blob = file.slice(start, end);
+            const arrayBuffer = await blob.arrayBuffer();
+
+            // Guard against empty buffers if slice logic fails
+            if (arrayBuffer.byteLength === 0 && start < file.size) {
+                 throw new Error('Read resulted in 0-byte buffer at non-EOF offset');
+            }
+
+            // Send back to main thread using transferable array (zero-copy)
+            (self as any).postMessage({
+                type: 'chunk',
+                chunk: arrayBuffer,
+                offset: start,
+                totalSize: file.size
+            }, [arrayBuffer]);
+
         } catch (err) {
+            console.error('[Worker] Read Error:', err);
             (self as any).postMessage({ type: 'error', error: String(err) });
-        } finally {
-            self.removeEventListener('message', cmdListener);
         }
     }
 };
