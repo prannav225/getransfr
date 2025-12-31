@@ -106,20 +106,9 @@ class RTCFileTransferManager {
                     // Directory / Batch
                     this.dirHandles.set(peerId, fileSystemHandle);
                     
-                    // Open first file (Create nested folders if needed)
+                    // Open first file
                     const firstFile = files[0];
-                    const filePath = (firstFile as any).path || firstFile.webkitRelativePath || firstFile.name;
-                    
-                    let targetHandle = fileSystemHandle;
-                    const parts = filePath.split('/').filter((p: string) => p);
-                    const fileName = parts.pop()!;
-                    
-                    // Traverse/Create folders
-                    for (const part of parts) {
-                        targetHandle = await targetHandle.getDirectoryHandle(part, { create: true });
-                    }
-                    
-                    const fileHandle = await targetHandle.getFileHandle(fileName, { create: true });
+                    const fileHandle = await fileSystemHandle.getFileHandle(firstFile.name, { create: true });
                     const writable = await fileHandle.createWritable();
                     this.fileStreams.set(peerId, writable);
                      console.log('[RTC] Using provided Directory Handle for batch');
@@ -311,21 +300,9 @@ class RTCFileTransferManager {
 
             // 2. Open new stream
             const nextFile = metadata[targetIndex];
-            const filePath = nextFile.path || nextFile.name; // Metadata path
-            
             try {
-                console.log(`[RTC] Switching stream to next file: ${filePath}`);
-                
-                let targetHandle = dirHandle;
-                const parts = filePath.split('/').filter((p: string) => p);
-                const fileName = parts.pop()!; // Last part is filename
-                
-                // Recursively get/create directory handle
-                for (const part of parts) {
-                    targetHandle = await targetHandle.getDirectoryHandle(part, { create: true });
-                }
-
-                const fileHandle = await targetHandle.getFileHandle(fileName, { create: true });
+                console.log(`[RTC] Switching stream to next file: ${nextFile.name}`);
+                const fileHandle = await dirHandle.getFileHandle(nextFile.name, { create: true });
                 const writable = await fileHandle.createWritable();
                 this.fileStreams.set(peerId, writable);
             } catch(e) {
@@ -384,9 +361,6 @@ class RTCFileTransferManager {
         } else if (chunks) {
             const fileMetadata = metadata.find(file => file.name === fileName);
 
-            // Folder Structure Preservation: Use path if available
-            const finalName = fileMetadata?.path || fileName;
-
             const blob = new Blob(chunks as BlobPart[], {
                 type: fileMetadata?.type || 'application/octet-stream'
             });
@@ -394,8 +368,7 @@ class RTCFileTransferManager {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            // Fix #4: Preserve folder context by replacing slashes with underscores instead of flattening completely
-            a.download = finalName.replace(/\//g, '_'); 
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
