@@ -1,62 +1,52 @@
 /**
  * TransferWorker.ts
- * Robust background thread for file chunking and backpressure handling.
+ * Streamlined file reader for ultra-fast P2P transfers.
  */
 
-// Use addEventListener instead of onmessage to allow multiple listeners/cleaner state
-self.addEventListener('message', async (e: MessageEvent) => {
-    const { type, file, offset, chunkSize } = e.data;
+self.onmessage = async (e: MessageEvent) => {
+    const { type, file, offset: startOffset, chunkSize } = e.data;
 
-    if (type === 'start-read') {
-        runReadLoop(file, offset, chunkSize);
-    }
-});
+    if (type === 'start') {
+        let offset = startOffset;
+        const totalSize = file.size;
+        let paused = false;
 
-async function runReadLoop(file: File, startOffset: number, chunkSize: number) {
-    let offset = startOffset;
-    const totalSize = file.size;
-    let paused = false;
-    let stopped = false;
+        // Command listener for this specific loop
+        const cmdListener = (msg: MessageEvent) => {
+            if (msg.data.type === 'next') paused = false;
+            if (msg.data.type === 'stop') offset = totalSize; // End the loop
+        };
+        self.addEventListener('message', cmdListener);
 
-    const messageHandler = (e: MessageEvent) => {
-        if (e.data.type === 'next') paused = false;
-        if (e.data.type === 'stop') stopped = true;
-    };
+        try {
+            while (offset < totalSize) {
+                if (paused) {
+                    // Small yield for thread responsiveness, but no fixed delay
+                    await new Promise(r => setTimeout(r, 0));
+                    continue;
+                }
 
-    self.addEventListener('message', messageHandler);
+                const end = Math.min(offset + chunkSize, totalSize);
+                const chunk = await file.slice(offset, end).arrayBuffer();
+                
+                // If stopped while reading
+                if (offset >= totalSize) break;
 
-    try {
-        while (offset < totalSize && !stopped) {
-            if (paused) {
-                await new Promise(r => setTimeout(r, 5));
-                continue;
+                (self as any).postMessage({
+                    type: 'chunk',
+                    chunk,
+                    offset,
+                    totalSize
+                }, [chunk]);
+
+                offset += chunk.byteLength;
+                paused = true; // Wait for drain from main thread
             }
-
-            const slice = file.slice(offset, offset + chunkSize);
-            const chunk = await slice.arrayBuffer();
-
-            if (stopped) break;
-
-            (self as any).postMessage({
-                type: 'chunk',
-                chunk,
-                offset,
-                totalSize
-            }, [chunk]); 
-
-            offset += chunk.byteLength;
-            paused = true; // Wait for 'next' from main thread backpressure
-        }
-
-        if (stopped) {
-            console.log('[Worker] Transfer stopped');
-        } else {
             (self as any).postMessage({ type: 'complete' });
+        } catch (err) {
+            (self as any).postMessage({ type: 'error', error: String(err) });
+        } finally {
+            self.removeEventListener('message', cmdListener);
         }
-    } catch (err) {
-        console.error('[Worker] Read Error:', err);
-        (self as any).postMessage({ type: 'error', error: 'Failed to read file chunk. The file may have been moved or modified.' });
-    } finally {
-        self.removeEventListener('message', messageHandler);
     }
-}
+};
