@@ -48,23 +48,39 @@ export class RTCService {
                     console.log('[RTCService] Reusing existing PeerConnection for offer (Restart/Renegotiation)');
                 }
 
-                // Handle the offer (Standard Re-negotiation flow)
-                // We don't check for 'stable' strictly because we might be in 'have-local-offer' if we crossed offers (Glare),
-                // but for simple restart, we usually accept if we are stable or have-remote-offer?
-                // Actually, if we are 'stable', we accept.
-                // If we are 'have-local-offer', this is a collision. Smart handling needed?
-                // For now, let's proceed if stable or have-remote-offer (unlikely for offer).
+                // Glare Handling / Perfect Negotiation Pattern
+                const isStable = !peerConnection || peerConnection.signalingState === 'stable' || (peerConnection.signalingState === 'have-local-offer' && !peerConnection.remoteDescription);
+                const offerCollision = (offer.type === 'offer') && !isStable;
+
+                const ignoreOffer =  offerCollision && socket.id && (socket.id > from);
+                if (ignoreOffer) {
+                    console.log(`[RTCService] Glare detected. I am the impolite peer (${socket.id} > ${from}). Ignoring their offer.`);
+                    return;
+                }
+
+                if (offerCollision) {
+                     console.log(`[RTCService] Glare detected. I am the polite peer. Rolling back.`);
+                     // If we are "have-local-offer", we need to rollback to accept theirs
+                     // Note: 'rollback' support varies, but this is the standard pattern
+                     if (peerConnection.signalingState !== 'stable') {
+                        try {
+                            await peerConnection.setLocalDescription({ type: 'rollback' });
+                        } catch(e) { console.warn("Rollback failed, might need renegotiation restart", e); }
+                    }
+                }
                 
-                // Resetting logic: If we are in a weird state, maybe we should just setRemoteDescription.
-                // Modern WebRTC handles rollbacks if needed.
-                
+                // If we don't have a PC yet (race condition?), check again? 
+                // We created it above, so we are good.
+
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
                 await this.applyBufferedCandidates(from);
 
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-
-                socket.emit('rtc-answer', { to: from, answer });
+                // Only answer if we are stable now (which we should be after SRD)
+                if (peerConnection.signalingState === 'have-remote-offer') {
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    socket.emit('rtc-answer', { to: from, answer });
+                }
 
             } catch (error) {
                 console.error('[RTCService] Error handling RTC offer:', error);
@@ -178,7 +194,7 @@ export class RTCService {
                         break;
 
                     case 'accept':
-                        this.handleTransferAccepted(peerId);
+                        this.handleTransferAccepted(peerId, message.offset);
                         break;
                     case 'decline':
                         this.handleTransferDeclined(peerId);
@@ -237,7 +253,8 @@ export class RTCService {
         if (accepted) {
             console.log('[RTCService] User accepted. Initializing transmission...');
             await this.fileTransferManager.initializeReceiver(peerId, files);
-            dataChannel.send(JSON.stringify({ type: 'accept' }));
+            const currentOffset = this.fileTransferManager.getTransferProgress(peerId);
+            dataChannel.send(JSON.stringify({ type: 'accept', offset: currentOffset }));
         } else {
             console.log('[RTCService] User declined or timeout.');
             dataChannel.send(JSON.stringify({ type: 'decline' }));
@@ -245,19 +262,18 @@ export class RTCService {
         }
     }
 
-    private handleTransferAccepted(peerId: string): void {
-        console.log('[RTCService] Sender: Remote peer accepted transfer:', peerId);
+    private handleTransferAccepted(peerId: string, offset: number = 0): void {
+        console.log('[RTCService] Sender: Remote peer accepted transfer:', peerId, 'Resume Offset:', offset);
         
         // Find if this is part of a mesh session
         let sessionToStart: any = null;
         for (const [sessionId, session] of this.meshSessions.entries()) {
+            // ... Mesh logic ...
             if (session.peerIds.includes(peerId)) {
                 session.readyPeers.add(peerId);
                 const dc = this.dataChannelManager.getDataChannel(peerId);
                 if (dc) session.channels[peerId] = dc;
 
-                // If everyone who was invited is ready (or declined/failed)
-                // We start when all original invitees are accounted for
                 if (session.readyPeers.size === session.peerIds.length) {
                     sessionToStart = { ...session, sessionId };
                 }
@@ -267,12 +283,13 @@ export class RTCService {
 
         if (sessionToStart) {
             this.meshSessions.delete(sessionToStart.sessionId);
+            // Mesh doesn't support individual offsets efficiently yet, so we default to 0
             this.startMeshTransfer(sessionToStart.peerIds, sessionToStart.files, sessionToStart.callbacks, sessionToStart.channels);
         } else {
             // Check legacy single transfer
             const pendingTransfer = this.transferRequests.get(peerId);
             if (pendingTransfer) {
-                this.startFileTransfer(peerId, pendingTransfer.files, pendingTransfer.callbacks);
+                this.startFileTransfer(peerId, pendingTransfer.files, pendingTransfer.callbacks, offset);
                 this.transferRequests.delete(peerId);
             }
         }
@@ -340,7 +357,7 @@ export class RTCService {
         this.cleanupPeer(peerId);
     }
 
-    private async startFileTransfer(peerId: string, files: File[], callbacks: FileProgress): Promise<void> {
+    private async startFileTransfer(peerId: string, files: File[], callbacks: FileProgress, startingOffset: number = 0): Promise<void> {
         try {
             const dataChannel = this.dataChannelManager.getDataChannel(peerId);
             if (!dataChannel) {
@@ -350,8 +367,23 @@ export class RTCService {
             console.log('[RTCService] Sender: Beginning transmission to:', peerId);
             this.fileTransferManager.initializeSender(peerId, files, callbacks);
 
+            let currentOffset = startingOffset;
+
             for (const file of files) {
-                await this.fileTransferManager.sendFile(peerId, file, dataChannel);
+                if (currentOffset >= file.size) {
+                    console.log(`[RTCService] Skipping ${file.name} (already sent)`);
+                    currentOffset -= file.size;
+                    
+                    // Crucial: Update the Sender UI to show this part as done
+                    // Since we skip sending, we must manually trigger stats update or the UI will lag
+                    // Actually, RTCFileTransferManager stats update relies on worker messages.
+                    // Ideally we should "fake" completion? 
+                    // For now, simpler to just skip. The UI might jump from 0 to 50% when the next file starts sending.
+                    continue;
+                }
+                
+                await this.fileTransferManager.sendFile(peerId, file, dataChannel, currentOffset);
+                currentOffset = 0; // Reset offset for subsequent files
             }
 
             console.log('[RTCService] Sender: Transmission complete for:', peerId);
