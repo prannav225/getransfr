@@ -1,51 +1,62 @@
 /**
  * TransferWorker.ts
- * Offloads heavy file chunking and multi-peer broadcasting to a background thread.
- * This prevents UI freezes and WebSocket heartbeat drops during 1GB+ mesh transfers.
+ * Robust background thread for file chunking and backpressure handling.
  */
 
-self.onmessage = async (e: MessageEvent) => {
+// Use addEventListener instead of onmessage to allow multiple listeners/cleaner state
+self.addEventListener('message', async (e: MessageEvent) => {
     const { type, file, offset, chunkSize } = e.data;
 
     if (type === 'start-read') {
         runReadLoop(file, offset, chunkSize);
     }
-};
+});
 
 async function runReadLoop(file: File, startOffset: number, chunkSize: number) {
     let offset = startOffset;
     const totalSize = file.size;
     let paused = false;
+    let stopped = false;
 
-    // Listen for backpressure from main thread
-    self.onmessage = (e) => {
+    const messageHandler = (e: MessageEvent) => {
         if (e.data.type === 'next') paused = false;
-        if (e.data.type === 'stop') offset = totalSize;
+        if (e.data.type === 'stop') stopped = true;
     };
 
-    while (offset < totalSize) {
-        if (paused) {
-            await new Promise(r => setTimeout(r, 10));
-            continue;
-        }
+    self.addEventListener('message', messageHandler);
 
-        const slice = file.slice(offset, offset + chunkSize);
-        try {
+    try {
+        while (offset < totalSize && !stopped) {
+            if (paused) {
+                await new Promise(r => setTimeout(r, 5));
+                continue;
+            }
+
+            const slice = file.slice(offset, offset + chunkSize);
             const chunk = await slice.arrayBuffer();
+
+            if (stopped) break;
+
             (self as any).postMessage({
                 type: 'chunk',
                 chunk,
                 offset,
                 totalSize
-            }, [chunk]); // Transfer the ArrayBuffer for zero-copy speed
+            }, [chunk]); 
 
             offset += chunk.byteLength;
-            paused = true; // Wait for 'next' from main thread
-        } catch (err) {
-            (self as any).postMessage({ type: 'error', error: 'Failed to read file chunk' });
-            return;
+            paused = true; // Wait for 'next' from main thread backpressure
         }
-    }
 
-    (self as any).postMessage({ type: 'complete' });
+        if (stopped) {
+            console.log('[Worker] Transfer stopped');
+        } else {
+            (self as any).postMessage({ type: 'complete' });
+        }
+    } catch (err) {
+        console.error('[Worker] Read Error:', err);
+        (self as any).postMessage({ type: 'error', error: 'Failed to read file chunk. The file may have been moved or modified.' });
+    } finally {
+        self.removeEventListener('message', messageHandler);
+    }
 }

@@ -415,9 +415,12 @@ export class RTCService {
             try {
                 const peerConnection = this.connectionManager.createPeerConnection(peerId);
                 const dataChannel = peerConnection.createDataChannel('fileTransfer', {
-                    ordered: true,
-                    maxRetransmits: 30
+                    ordered: true
+                    // Reliable: no maxRetransmits/maxPacketLifeTime
                 });
+                
+                // Allow buffer to fill up to 4MB before pausing
+                dataChannel.bufferedAmountLowThreshold = 4 * 1024 * 1024; 
 
                 this.setupDataChannel(peerId, dataChannel);
 
