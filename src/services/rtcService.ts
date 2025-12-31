@@ -218,19 +218,22 @@ export class RTCService {
         await new Promise(resolve => setTimeout(resolve, 300));
 
         let handled = false;
-        const accepted = await new Promise<boolean>(resolve => {
+        // Define result type locally for clarity
+        type AcceptanceResult = { accepted: boolean, handle?: any };
+
+        const result = await new Promise<AcceptanceResult>(resolve => {
             eventBus.emit(EVENTS.FILE_TRANSFER_REQUEST, {
                 peerId,
                 files,
-                handleAccept: () => {
+                handleAccept: (handle?: any) => {
                     if (handled) return;
                     handled = true;
-                    resolve(true);
+                    resolve({ accepted: true, handle });
                 },
                 handleDecline: () => {
                     if (handled) return;
                     handled = true;
-                    resolve(false);
+                    resolve({ accepted: false });
                 }
             });
 
@@ -239,7 +242,7 @@ export class RTCService {
                 if (!handled) {
                     console.log('[RTCService] Transfer request timed out');
                     handled = true;
-                    resolve(false);
+                    resolve({ accepted: false });
                 }
             }, 120000);
         });
@@ -250,9 +253,9 @@ export class RTCService {
             return;
         }
 
-        if (accepted) {
+        if (result.accepted) {
             console.log('[RTCService] User accepted. Initializing transmission...');
-            await this.fileTransferManager.initializeReceiver(peerId, files);
+            await this.fileTransferManager.initializeReceiver(peerId, files, result.handle);
             const currentOffset = this.fileTransferManager.getTransferProgress(peerId);
             dataChannel.send(JSON.stringify({ type: 'accept', offset: currentOffset }));
         } else {
@@ -368,22 +371,21 @@ export class RTCService {
             this.fileTransferManager.initializeSender(peerId, files, callbacks);
 
             let currentOffset = startingOffset;
+            let index = 0;
 
             for (const file of files) {
                 if (currentOffset >= file.size) {
                     console.log(`[RTCService] Skipping ${file.name} (already sent)`);
                     currentOffset -= file.size;
-                    
-                    // Crucial: Update the Sender UI to show this part as done
-                    // Since we skip sending, we must manually trigger stats update or the UI will lag
-                    // Actually, RTCFileTransferManager stats update relies on worker messages.
-                    // Ideally we should "fake" completion? 
-                    // For now, simpler to just skip. The UI might jump from 0 to 50% when the next file starts sending.
+                    index++;
                     continue;
                 }
                 
-                await this.fileTransferManager.sendFile(peerId, file, dataChannel, currentOffset);
+                // Pass the index to ensure robust progress calculation
+                await this.fileTransferManager.sendFile(peerId, file, dataChannel, currentOffset, index);
+                
                 currentOffset = 0; // Reset offset for subsequent files
+                index++;
             }
 
             console.log('[RTCService] Sender: Transmission complete for:', peerId);

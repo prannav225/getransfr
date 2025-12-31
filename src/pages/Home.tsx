@@ -83,7 +83,7 @@ export function Home() {
 
     const [fileTransferRequest, setFileTransferRequest] = useState<{
         files: any[];
-        handleAccept: () => void;
+        handleAccept: (handle?: any) => void;
         handleDecline: () => void;
     } | null>(null);
 
@@ -247,9 +247,28 @@ export function Home() {
                         <div className="pointer-events-auto">
                             <FileTransferModal
                                 files={fileTransferRequest.files}
-                                onConfirm={() => {
+                                onConfirm={async () => {
+                                    const files = fileTransferRequest.files;
+                                    let handle: any = undefined;
+
+                                    // Try to get File System Handle immediately within User Gesture
+                                    if ('showSaveFilePicker' in window) {
+                                        try {
+                                            if (files.length === 1) {
+                                                handle = await (window as any).showSaveFilePicker({
+                                                    suggestedName: files[0].name,
+                                                });
+                                            } else if (files.length > 1) {
+                                                handle = await (window as any).showDirectoryPicker();
+                                            }
+                                        } catch (err) {
+                                            console.log('[Home] File picker cancelled or failed:', err);
+                                            // Proceed without handle (will fallback to memory/download)
+                                        }
+                                    }
+
                                     if (typeof fileTransferRequest.handleAccept === 'function') {
-                                        fileTransferRequest.handleAccept();
+                                        fileTransferRequest.handleAccept(handle);
                                     }
                                     setFileTransferRequest(null);
                                     toast.success('Transfer accepted');

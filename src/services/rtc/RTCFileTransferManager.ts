@@ -84,7 +84,7 @@ class RTCFileTransferManager {
         }
     }
 
-    async initializeReceiver(peerId: string, files: any[]): Promise<void> {
+    async initializeReceiver(peerId: string, files: any[], fileSystemHandle?: any): Promise<void> {
         this.chunks.set(peerId, []);
         this.sentSizes.set(peerId, 0);
         this.currentFileIndices.set(peerId, 0);
@@ -93,49 +93,40 @@ class RTCFileTransferManager {
         const totalSize = files.reduce((acc, file) => acc + file.size, 0);
         this.totalSizes.set(peerId, totalSize);
 
-        // Try to use File System Access API for better performance on large files (Single File Only for now)
-        if ('showSaveFilePicker' in window) {
-            try {
-                if (files.length === 1) {
-                    // Single File Strategy
-                    const file = files[0];
-                    const handle = await (window as any).showSaveFilePicker({
-                        suggestedName: file.name,
-                    });
-                    const writable = await handle.createWritable();
+        // Usage of provided File System Handle (from UI User Gesture)
+        if (fileSystemHandle) {
+             try {
+                if (files.length === 1 && fileSystemHandle.kind === 'file') {
+                    // Single File
+                    const writable = await fileSystemHandle.createWritable();
                     this.fileStreams.set(peerId, writable);
-                } else {
-                    // Multi-File Batch Strategy (Directory)
-                    // If user cancels or browser fails, we fall back to memory
-                    try {
-                        const dirHandle = await (window as any).showDirectoryPicker();
-                        this.dirHandles.set(peerId, dirHandle);
-                        
-                        // Open the first file immediately
-                        const firstFile = files[0];
-                        const fileHandle = await dirHandle.getFileHandle(firstFile.name, { create: true });
-                        const writable = await fileHandle.createWritable();
-                        this.fileStreams.set(peerId, writable);
-                        console.log('[RTC] Directory Access granted. Streaming batch to disk.');
-                    } catch (dirErr) {
-                         console.log('[RTC] Directory picker cancelled or not supported for batch. Falling back to memory.', dirErr);
-                    }
+                    console.log('[RTC] Using provided File Handle for single file');
+                } else if (files.length > 1 && fileSystemHandle.kind === 'directory') {
+                    // Directory / Batch
+                    this.dirHandles.set(peerId, fileSystemHandle);
+                    
+                    // Open first file
+                    const firstFile = files[0];
+                    const fileHandle = await fileSystemHandle.getFileHandle(firstFile.name, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    this.fileStreams.set(peerId, writable);
+                     console.log('[RTC] Using provided Directory Handle for batch');
                 }
-            } catch (err) {
-                console.log('[RTC] File/Directory picker failed, falling back to memory', err);
-            }
+             } catch (err) {
+                 console.error('[RTC] Failed to use provided FileSystemHandle:', err);
+             }
         }
-
+        
         eventBus.emit(EVENTS.FILE_TRANSFER_START, { peerId, totalSize });
     }
 
 
 
-    async sendFile(peerId: string, file: File, dataChannel: RTCDataChannel, startingOffset: number = 0): Promise<void> {
-        return this.sendMesh([peerId], file, { [peerId]: dataChannel }, startingOffset);
+    async sendFile(peerId: string, file: File, dataChannel: RTCDataChannel, startingOffset: number = 0, fileIndex?: number): Promise<void> {
+        return this.sendMesh([peerId], file, { [peerId]: dataChannel }, startingOffset, fileIndex);
     }
 
-    async sendMesh(peerIds: string[], file: File, channels: Record<string, RTCDataChannel>, startingOffset: number = 0): Promise<void> {
+    async sendMesh(peerIds: string[], file: File, channels: Record<string, RTCDataChannel>, startingOffset: number = 0, fileIndex?: number): Promise<void> {
         const fileId = this.getFileId(file);
         
         // 1. Resume Check (sending offset logic)
@@ -199,9 +190,11 @@ class RTCFileTransferManager {
                             let cumulativeSent = currentFileOffset;
                             
                             if (files) {
-                                const currentIndex = files.indexOf(file);
-                                if (currentIndex > 0) {
-                                    const prevBytes = files.slice(0, currentIndex).reduce((acc, f) => acc + f.size, 0);
+                                // Robust Index Resolution: Use explicit fileIndex if provided, otherwise fallback to reference check
+                                const index = (fileIndex !== undefined) ? fileIndex : files.indexOf(file);
+                                
+                                if (index > 0) {
+                                    const prevBytes = files.slice(0, index).reduce((acc, f) => acc + f.size, 0);
                                     cumulativeSent += prevBytes;
                                 }
                             }
