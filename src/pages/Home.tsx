@@ -91,7 +91,48 @@ export function Home() {
     } | null>(null);
 
     useEffect(() => {
-        // Handle files shared from other apps via Web Share Target API
+        const checkSharedFiles = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('share-target')) {
+                try {
+                    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+                        const request = indexedDB.open('SharedFilesDB', 1);
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+
+                    const files = await new Promise<File[] | null>((resolve) => {
+                        const transaction = db.transaction('files', 'readonly');
+                        const request = transaction.objectStore('files').get('pending_share');
+                        request.onsuccess = () => resolve(request.result);
+                    });
+
+                    if (files && files.length > 0) {
+                        if ('vibrate' in navigator) navigator.vibrate([30, 80, 30]);
+                        const event = {
+                            target: {
+                                files: Object.assign([], files)
+                            }
+                        } as unknown as React.ChangeEvent<HTMLInputElement>;
+                        handleFileSelect(event);
+                        toast.success(`${files.length} file(s) shared with Getransfr`);
+
+                        // Clear the storage
+                        const deleteTx = db.transaction('files', 'readwrite');
+                        deleteTx.objectStore('files').delete('pending_share');
+                    }
+
+                    // Clean URL
+                    window.history.replaceState({}, document.title, '/');
+                } catch (err) {
+                    console.error('[Home] Failed to retrieve shared files:', err);
+                }
+            }
+        };
+
+        checkSharedFiles();
+
+        // Standard File Handling API (Chrome/Edge native files)
         if ('launchQueue' in window) {
             (window as any).launchQueue.setConsumer(async (launchParams: any) => {
                 if (launchParams.files && launchParams.files.length > 0) {
