@@ -9,7 +9,7 @@ interface SendViewProps {
   handleFileRemove: (index: number) => void;
   currentDevice: Device | null;
   connectedDevices: Device[];
-  handleSendFiles: (targets: Device | Device[]) => Promise<void>;
+  handleSendFiles: (device: Device) => Promise<void>;
   onClipboardClick: (to: string) => void;
   isSending: boolean;
 }

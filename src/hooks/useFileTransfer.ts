@@ -31,13 +31,12 @@ export function useFileTransfer() {
 // Zip logic removed – files are sent individually as a batch queue.
 
 
-  const startTransfer = useCallback(async (targets: Device | Device[], files: File[]) => {
+  const startTransfer = useCallback(async (target: Device, files: File[]) => {
     if (files.length === 0 || isSending) {
       return;
     }
 
-    const targetDevices = Array.isArray(targets) ? targets : [targets];
-    const socketIds = targetDevices.map(d => d.socketId);
+    const peerId = target.socketId;
 
     setIsSending(true);
     setProgress(0);
@@ -46,17 +45,9 @@ export function useFileTransfer() {
     if ('vibrate' in navigator) navigator.vibrate([10, 50, 10]);
 
     try {
-      // Enrichment: Add path metadata for raw files if they have webkitRelativePath
-      const filesWithMetadata = files.map(file => {
-          if ((file as any).webkitRelativePath) {
-              (file as any).path = (file as any).webkitRelativePath;
-          }
-          return file;
-      });
-
       const cancel = await rtcService.sendFiles(
-        socketIds,
-        filesWithMetadata,
+        peerId,
+        files,
         {
           onProgress: (p) => {
             setProgress(p);
@@ -118,8 +109,8 @@ export function useFileTransfer() {
     }
   }, [selectedFiles, isSending]);
 
-  const handleSendFiles = useCallback(async (targets: Device | Device[]) => {
-      await startTransfer(targets, selectedFiles);
+  const handleSendFiles = useCallback(async (device: Device) => {
+      await startTransfer(device, selectedFiles);
   }, [selectedFiles, startTransfer]);
 
   return {

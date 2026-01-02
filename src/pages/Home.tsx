@@ -13,6 +13,7 @@ import { BottomNav } from '@/components/navigation/BottomNav';
 import { useClipboard } from '@/hooks/useClipboard';
 import { TextTransferModal } from '@/components/modals/TextTransferModal';
 import { useSound } from '@/hooks/useSound';
+import { useWakeLock } from '@/hooks/useWakeLock';
 import { eventBus, EVENTS } from '@/utils/events';
 
 export function Home() {
@@ -34,8 +35,10 @@ export function Home() {
         setSelectedFiles
     } = useFileTransfer();
     const { playSound } = useSound();
+    const { requestWakeLock: requestReceiverWakeLock, releaseWakeLock: releaseReceiverWakeLock } = useWakeLock();
 
     const handleFileRemove = (index: number) => {
+        if ('vibrate' in navigator) navigator.vibrate(30);
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
         toast.success('File removed successfully');
     };
@@ -97,6 +100,7 @@ export function Home() {
                     );
                     
                     if (files.length > 0) {
+                        if ('vibrate' in navigator) navigator.vibrate([30, 80, 30]); // High-precision double-pulse for shared files
                         const event = {
                             target: {
                                 files: Object.assign([], files)
@@ -117,6 +121,7 @@ export function Home() {
             }
 
             playSound('ding');
+            if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]); // Attention blip
             setFileTransferRequest({ 
                 files, 
                 handleAccept, 
@@ -133,6 +138,7 @@ export function Home() {
             const { from, text } = data;
             const sender = connectedDevicesRef.current.find(d => d.socketId === from);
             playSound('ding');
+            if ('vibrate' in navigator) navigator.vibrate(60);
             setTextModal({
                 isOpen: true,
                 mode: 'receive',
@@ -157,6 +163,7 @@ export function Home() {
         }
 
         const handleTransferComplete = () => {
+            releaseReceiverWakeLock();
             if (Notification.permission === 'granted') {
                 new Notification('Transfer Complete', {
                     body: 'Files have been transferred successfully.',
@@ -165,16 +172,26 @@ export function Home() {
             }
         };
 
+        const handleTransferStart = () => {
+            requestReceiverWakeLock();
+        };
+
         const unsubFileTransfer = eventBus.on(EVENTS.FILE_TRANSFER_REQUEST, handleTransferRequest);
-        const unsubFileError = eventBus.on(EVENTS.FILE_TRANSFER_ERROR, handleTransferError);
+        const unsubFileError = eventBus.on(EVENTS.FILE_TRANSFER_ERROR, (data) => {
+            handleTransferError(data);
+            releaseReceiverWakeLock();
+        });
         const unsubFileComplete = eventBus.on(EVENTS.FILE_TRANSFER_COMPLETE, handleTransferComplete);
         const unsubTextTransfer = eventBus.on(EVENTS.TEXT_TRANSFER_REQUEST, handleTextTransferRequest);
+        const unsubFileStart = eventBus.on(EVENTS.FILE_TRANSFER_START, handleTransferStart);
 
         return () => {
             unsubFileTransfer();
             unsubFileError();
             unsubFileComplete();
             unsubTextTransfer();
+            unsubFileStart();
+            releaseReceiverWakeLock();
         };
     }, []); // Empty dependency array means these listeners are set once and remain stable
 

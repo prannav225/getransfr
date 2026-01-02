@@ -1,7 +1,7 @@
 import ConnectionManagerClass from './rtc/RTCConnectionManager';
 import DataChannelManagerClass from './rtc/RTCDataChannelManager';
 import RTCFileTransferManager from './rtc/RTCFileTransferManager';
-import { FileProgress } from './p2pService';
+import { FileProgress } from '../types/transfer';
 import { eventBus, EVENTS } from '../utils/events';
 import { socket } from './socket';
 
@@ -176,8 +176,7 @@ class RTCService {
         }
     }
 
-    public async sendFiles(peerIds: string[], files: File[], callbacks: FileProgress): Promise<() => void> {
-        const peerId = peerIds[0];
+    public async sendFiles(peerId: string, files: File[], callbacks: FileProgress): Promise<() => void> {
         if (!peerId) return () => {};
 
         this.transferRequests.set(peerId, { files, callbacks });

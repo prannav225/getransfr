@@ -2,37 +2,30 @@
 
 The Getransfr Client is a high-performance, web-based frontend for the Getransfr peer-to-peer file sharing system. Built with React 19, TypeScript, and Vite, it is engineered for rock-solid reliability and maximum throughput on local networks.
 
-## User Interface and Experience
+## Features
 
-The application features a "one-view" dashboard designed for speed and simplicity, ensuring that sending and receiving files is seamless on both desktop and mobile devices.
-
-- **Reliable 1-to-1 Transfer**: Focused on dedicated sessions between two devices to ensure maximum bandwidth utilization and zero interference.
-- **Flat-List Distribution**: Simplified file handling that treats all uploads as a flat list, ensuring broad compatibility and avoiding file system permission complexities.
-- **Modern Design Themes**: Supports multiple visual modes (Modern, Glass, Retro, Cyberpunk) with high-end glassmorphism, vibrant gradients, and smooth Framer Motion transitions.
-- **Real-Time Visual Feedback**: Dynamic progress bars with live speed (MB/s) and ETA calculation for both sender and receiver.
-- **Smart Device Discovery**: Automatic peer detection with unique, user-friendly names and avatars generated via Dicebear.
-- **Acoustic & Haptic Feedback**: Integrated sound effects and haptics provide intuitive confirmation for transfer starts, completions, and requests.
+- **Direct P2P Transfers**: Secure browser-to-browser communication using **WebRTC**, keeping your data off intermediate servers.
+- **Reliable 1-to-1 Engine**: Dedicated transmission pipe engineered for maximum bandwidth utilization and rock-solid stability.
+- **Direct-to-Disk Streaming**: Integrates the **File System Access API** to stream files directly to disk, eliminating memory bottlenecks for massive transfers.
+- **Clipboard & Text Share**: Instantly share text snippets, links, and snippets between connected devices with a single click.
+- **Smart Connection Recovery**: Automated **ICE Restarts** to automatically recover from network drops or IP switches during transfers.
+- **PWA & Share Target**: Fully installable as a Progressive Web App. Support for the **Web Share Target API** allows you to "Share to Getransfr" from other apps.
+- **Dynamic Audio & Haptics**: Integrated sound effects and high-precision haptic feedback for a premium interactive experience.
 
 ## Technical Architecture
 
-- **WebRTC Turbo Stack**: Native WebRTC implementation utilizing `bufferedAmountLow` event-driven flow control and hybrid polling to prevent main-thread hangs and optimize throughput.
-- **Background Worker Chunker**: File reading and slicing are offloaded to a dedicated Web Worker, preventing UI stuttering and ensuring a fluid 60fps experience even during multi-gigabyte transfers.
-- **Sequential Write Queue**: Implements an asynchronous task queue on the receiver side to ensure file chunks are written to disk or memory in perfect order, eliminating file corruption.
-- **Native File System API**: Supports direct-to-disk streaming via the File System Access API where available (Chrome/Edge), falling back to high-speed memory buffering for other browsers.
-- **Power Management**: Utilizes the Screen Wake Lock API to prevent devices from sleeping during active transfers, ensuring long sessions complete successfully.
-- **PWA & Share Target**: Fully installable Progressive Web App with Share Target integration, allowing you to share files from other apps directly into Getransfr.
-
-## Performance Benchmarks
-
-- **Sub 1.2s FCP**: Highly optimized asset delivery and code splitting for near-instant load times.
-- **Memory Optimized**: Chunks are processed in small, manageable pieces (128KB) to maintain a low memory footprint even when handling 4K videos or massive datasets.
-- **Throttled React Reconciliation**: UI updates are gated to 100-150ms intervals to ensure the React render cycle doesn't bottleneck the data stream.
+- **Worker-Offloaded I/O**: File reading and slicing are handled by a dedicated **Web Worker**, ensuring a fluid 60fps UI even during multi-gigabit transfers.
+- **Advanced Backpressure Handling**: Integrated `bufferedAmountLow` event-driven flow control to prevent memory overflows and network congestion.
+- **Sequential Write Queue**: Ensures file chunks are written to disk or memory in perfect order, eliminating corruption.
+- **Power Persistence**: Utilizes the **Screen Wake Lock API** to ensure transfers complete even if the device screen dims.
+- **Modern UI Stack**: Built with **Framer Motion** for premium animations and **Tailwind CSS** for a responsive, glassmorphic aesthetic.
 
 ## Tech Stack
 
 - **React 19**: Modern component-based architecture.
 - **TypeScript**: Strict type safety for the entire transfer engine.
-- **Framer Motion**: Premium, hardware-accelerated animations.
+- **WebRTC**: Direct data channel transport.
 - **Socket.io**: Real-time signaling and presence management.
-- **Tailwind CSS**: Utility-first styling for responsive design.
+- **Framer Motion**: Premium, hardware-accelerated animations.
 - **Lucide React**: Sleek, consistent iconography.
+

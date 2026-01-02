@@ -8,17 +8,6 @@ precacheAndRoute(self.__WB_MANIFEST);
 (self as any).skipWaiting();
 (self as any).clientsClaim();
 
-// Handle Share Target
-(self as any).addEventListener('fetch', (event: any) => {
-  if (event.request.method === 'POST' && event.request.url.includes('/')) {
-    // This is likely a share target request
-    event.respondWith(
-      (async () => {
-        // We redirect to /?shared=true
-        // The launchQueue in Home.tsx will pick up the files if supported
-        // Or we could store them in IDB, but that's overkill for now
-        return Response.redirect('/?shared=true', 303);
-      })()
-    );
-  }
-});
+// Web Share Target & File Handling is handled via launchQueue in Home.tsx
+// We don't need to intercept the POST request here as it can interfere with the browser's
+// native delivery of files to the launchQueue consumer.

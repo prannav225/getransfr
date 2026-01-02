@@ -1,4 +1,4 @@
-import { FileProgress } from "../p2pService";
+import { FileProgress } from "../../types/transfer";
 import { eventBus, EVENTS } from "../../utils/events";
 
 // Define browser types for File System Access API
@@ -241,7 +241,13 @@ class RTCFileTransferManager {
                     peerMap?.delete(fileName);
                 }
             }
-            this.currentFileIndices.set(peerId, (this.currentFileIndices.get(peerId) || 0) + 1);
+            const nextIdx = (this.currentFileIndices.get(peerId) || 0) + 1;
+            this.currentFileIndices.set(peerId, nextIdx);
+            
+            if (metadata && nextIdx >= metadata.length) {
+                console.log(`[RTC] All ${metadata.length} files received for ${peerId}`);
+                eventBus.emit(EVENTS.FILE_TRANSFER_COMPLETE, { peerId });
+            }
         });
     }
 

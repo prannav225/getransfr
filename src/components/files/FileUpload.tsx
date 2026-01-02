@@ -71,30 +71,32 @@ export function FileUpload({ selectedFiles, onFileSelect, onFileRemove }: FileUp
         }
       }
 
-      if (files.length > 0) {
-        const event = {
-          target: {
-            files: Object.assign([], files)
-          }
-        } as unknown as React.ChangeEvent<HTMLInputElement>;
-        onFileSelect(event);
-      }
-    } else if (e.dataTransfer.files) {
-      const fileList = Array.from(e.dataTransfer.files);
-      const validFiles = fileList.filter(file => file.size > 0);
-
-      if (validFiles.length > 0) {
-        const event = {
-          target: {
-            files: Object.assign([], validFiles)
-          }
-        } as unknown as React.ChangeEvent<HTMLInputElement>;
-        onFileSelect(event);
+        if (files.length > 0) {
+          if ('vibrate' in navigator) navigator.vibrate(25);
+          const event = {
+            target: {
+              files: Object.assign([], files)
+            }
+          } as unknown as React.ChangeEvent<HTMLInputElement>;
+          onFileSelect(event);
+        }
+      } else if (e.dataTransfer.files) {
+        const fileList = Array.from(e.dataTransfer.files);
+        const validFiles = fileList.filter(file => file.size > 0);
+  
+        if (validFiles.length > 0) {
+          if ('vibrate' in navigator) navigator.vibrate(25);
+          const event = {
+            target: {
+              files: Object.assign([], validFiles)
+            }
+          } as unknown as React.ChangeEvent<HTMLInputElement>;
+          onFileSelect(event);
+        }
       }
     }
-  }
-
-  return (
+  
+    return (
     <div className="relative bg-glass-card rounded-[var(--radius-xl)] p-4 lg:p-8 transition-all duration-300 h-full flex flex-col group/card text-card-foreground">
       <div className="hidden lg:flex items-center gap-3 mb-8 relative z-10">
         <div className="p-2.5 rounded-full bg-primary/10 ring-1 ring-primary/20">
