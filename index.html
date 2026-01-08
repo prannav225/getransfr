@@ -4,33 +4,31 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" href="/getransfr-logo.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Getransfr">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-touch-fullscreen" content="yes">
 
-  <title>Getransfr — Instant High-Speed P2P File Transfer on Same Wi-Fi</title>
+  <title>Getransfr — The Fastest way to send files between your devices</title>
 
   <meta name="description"
-    content="Experience lightning-fast, high-performance P2P file sharing on your local network. Getransfr uses peak WebRTC technology for secure, no-internet, browser-to-browser transfers. No sign-up, no cloud, just instant sharing." />
+    content="Send files, links, and text instantly between your phone and laptop. No internet, no cloud, no sign-up. Getransfr works locally using secure peer-to-peer connections." />
 
   <link rel="canonical" href="https://getransfr.vercel.app/" />
   <meta name="robots" content="index, follow" />
-  <meta name="keywords"
-    content="P2P file transfer, local network sharing, WebRTC, high-speed file sharing, browser-to-browser, no internet transfer, secure file transfer" />
 
   <!-- Open Graph -->
-  <meta property="og:title" content="Getransfr — High-Speed P2P File Transfer" />
+  <meta property="og:title" content="Getransfr — The Fastest way to send files between your devices" />
   <meta property="og:description"
-    content="Fast, secure, and private peer-to-peer file sharing on your local network. No internet or apps required—just open your browser and transfer." />
+    content="Experience lightning-fast, high-performance P2P file sharing on your local network. Getransfr uses peak WebRTC technology for secure, no-internet, browser-to-browser transfers. No sign-up, no cloud, just instant sharing." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://getransfr.vercel.app/" />
   <meta property="og:image" content="/og-image.png" />
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Getransfr — Instant Local P2P Sharing" />
+  <meta name="twitter:title" content="Getransfr — The Fastest way to send files between your devices" />
   <meta name="twitter:description"
     content="Lightning-fast browser-to-browser sharing. No cloud, no internet, total privacy." />
   <meta name="twitter:image" content="/og-image.png" />
@@ -50,7 +48,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Getransfr",
-  "alternateName": ["Getransfr App", "Getransfr File Transfer", "Getransfr P2P"],
+  "alternateName": ["Getransfr App", "Getransfr File Transfer", "Getransfr P2P", "Getransfr Web Transfer"],
   "description": "High-performance peer-to-peer file transfer web app for instant sharing on local networks using WebRTC.",
   "url": "https://getransfr.vercel.app",
   "applicationCategory": "UtilitiesApplication",
@@ -60,6 +58,9 @@
     "price": "0",
     "priceCurrency": "USD"
   },
+  "isAccessibleForFree": true,
+  "softwareVersion": "1.0",
+  "keywords": "file sharing, clipboard sharing, local transfer, WebRTC",
   "featureList": [
     "High-speed WebRTC data channels",
     "No internet required",
@@ -86,6 +87,22 @@
 </head>
 
 <body>
+  <noscript>
+    <h1>Getransfr – Fast, Local File & Text Sharing</h1>
+    <p>
+      Getransfr lets you send files, links, and text instantly between your devices
+      using secure peer-to-peer connections. No cloud, no sign-up, no internet required.
+    </p>
+  </noscript>
+  <div id="seo-content" style="display:none">
+    <h1>Send Files and Text Between Devices Instantly</h1>
+    <p>
+      Getransfr is a fast, privacy-first file and clipboard sharing web app.
+      Transfer files, links, and text locally between devices using WebRTC.
+      No uploads, no accounts, no tracking.
+    </p>
+  </div>
+
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
