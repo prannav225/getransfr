@@ -26,6 +26,7 @@ export default defineConfig({
         background_color: "#020817",
         display: "standalone",
         orientation: "portrait-primary",
+        categories: ["productivity", "utilities"],
         scope: "/",
         start_url: "/",
         icons: [
@@ -55,6 +56,19 @@ export default defineConfig({
             ],
           },
         },
+        file_handlers: [
+          {
+            action: "/",
+            accept: {
+              "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"],
+              "video/*": [".mp4", ".mov", ".avi", ".mkv"],
+              "audio/*": [".mp3", ".wav", ".ogg", ".m4a"],
+              "application/pdf": [".pdf"],
+              "application/zip": [".zip", ".7z", ".rar"],
+              "text/*": [".txt", ".md", ".json", ".csv", ".js", ".ts"],
+            },
+          },
+        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff,woff2}"],
