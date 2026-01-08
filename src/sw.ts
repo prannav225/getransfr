@@ -1,51 +1,60 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
+import { registerRoute } from "workbox-routing";
 
 declare let self: ServiceWorkerGlobalScope;
+
+// Immediate Activation
+self.skipWaiting();
+self.clients.claim();
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
-self.skipWaiting();
-self.clients.claim();
-
-// Handle Web Share Target POST requests
-self.addEventListener("fetch", (event: FetchEvent) => {
-  const url = new URL(event.request.url);
-
-  if (event.request.method === "POST" && url.pathname === "/_share") {
-    event.respondWith(
-      (async () => {
-        try {
-          const formData = await event.request.formData();
-          const files = formData.getAll("files");
-
-          if (files.length > 0) {
-            // Open IndexedDB to store files temporarily
-            const db = await new Promise<IDBDatabase>((resolve, reject) => {
-              const request = indexedDB.open("SharedFilesDB", 1);
-              request.onupgradeneeded = () =>
-                request.result.createObjectStore("files");
-              request.onsuccess = () => resolve(request.result);
-              request.onerror = () => reject(request.error);
-            });
-
-            // Store files as an array
-            await new Promise((resolve, reject) => {
-              const transaction = db.transaction("files", "readwrite");
-              transaction.objectStore("files").put(files, "pending_share");
-              transaction.oncomplete = resolve;
-              transaction.onerror = reject;
-            });
-          }
-
-          // Redirect to a clean GET URL
-          return Response.redirect("/?share-target=true", 303);
-        } catch (err) {
-          console.error("[SW] Share failure:", err);
-          return Response.redirect("/?share-error=true", 303);
-        }
-      })()
+/**
+ * Robust Share Target Handler
+ * Catches POST requests specifically for the Getransfr Share Target.
+ */
+registerRoute(
+  ({ url, request }) => {
+    // Intercept POSTs to either /_share or root / to prevent 405s
+    return (
+      request.method === "POST" &&
+      (url.pathname === "/_share" || url.pathname === "/")
     );
-  }
-});
+  },
+  async ({ request }) => {
+    try {
+      const formData = await request.formData();
+      const files = formData.getAll("files");
+
+      if (files.length > 0) {
+        // Use a Promise-based IndexedDB wrapper for reliability
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const req = indexedDB.open("SharedFilesDB", 2); // Version bump for fresh state
+          req.onupgradeneeded = () => {
+            if (!req.result.objectStoreNames.contains("files")) {
+              req.result.createObjectStore("files");
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction("files", "readwrite");
+          tx.objectStore("files").put(files, "pending_share");
+          tx.oncomplete = resolve;
+          tx.onerror = reject;
+        });
+      }
+
+      // Redirect with a specific marker so the UI knows to look for files
+      return Response.redirect("/?share-target=true", 303);
+    } catch (err) {
+      console.error("[SW] Share Interception Failed:", err);
+      return Response.redirect("/?share-error=true", 303);
+    }
+  },
+  "POST"
+);

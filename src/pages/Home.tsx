@@ -150,7 +150,7 @@ export function Home() {
       if (urlParams.has("share-target")) {
         try {
           const db = await new Promise<IDBDatabase>((resolve, reject) => {
-            const request = indexedDB.open("SharedFilesDB", 1);
+            const request = indexedDB.open("SharedFilesDB", 2);
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
           });
