@@ -8,8 +8,9 @@ import {
   Monitor,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "wouter";
 import { Device } from "@/types/device";
-import { useTheme } from "@/components/ThemeProvider";
+import { useTheme, Theme } from "@/components/ThemeProvider";
 import { useSound } from "@/hooks/useSound";
 
 interface HeaderProps {
@@ -51,11 +52,15 @@ export function Header({ currentDevice }: HeaderProps) {
   }, []);
 
   if (!mounted) {
-    return <div className="h-[88px]" />; 
+    return <div className="h-[88px]" />;
   }
 
   const themes = [
-    { name: "light", icon: Sun, color: "bg-white text-orange-500 shadow-sm border border-border" },
+    {
+      name: "light",
+      icon: Sun,
+      color: "bg-white text-orange-500 shadow-sm border border-border",
+    },
     { name: "dark", icon: Moon, color: "bg-[#020817] text-blue-400" },
     { name: "glass", icon: Sparkles, color: "bg-blue-500/20 text-blue-400" },
     { name: "cyberpunk", icon: Zap, color: "bg-cyan-500/20 text-cyan-400" },
@@ -64,24 +69,32 @@ export function Header({ currentDevice }: HeaderProps) {
 
   const Brand = (
     <div className="flex items-center gap-2.5 lg:gap-4 shrink-0">
-      <img
-        src="/G.png"
-        alt="Getransfr"
-        className="w-8 h-8 lg:w-11 lg:h-11 drop-shadow-sm transition-all hover:scale-110"
-      />
-      <h1 className="text-lg lg:text-2xl text-brand bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-        Getransfr
-      </h1>
+      <Link href="/">
+        <a className="flex items-center gap-2.5 lg:gap-4 hover:opacity-80 transition-opacity">
+          <img
+            src="/G.png"
+            alt="Getransfr"
+            className="w-8 h-8 lg:w-11 lg:h-11 drop-shadow-sm transition-all hover:scale-110"
+          />
+          <h1 className="text-lg lg:text-2xl text-brand bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            Getransfr
+          </h1>
+        </a>
+      </Link>
     </div>
   );
 
   const ThemeToggles = (isMobile: boolean) => (
-    <div className={`flex items-center ${isMobile ? 'gap-0.5' : 'gap-1'} bg-black/5 dark:bg-white/5 p-1 rounded-full border border-border/50 shrink-0`}>
+    <div
+      className={`flex items-center ${
+        isMobile ? "gap-0.5" : "gap-1"
+      } bg-black/5 dark:bg-white/5 p-1 rounded-full border border-border/50 shrink-0`}
+    >
       {themes.map((t) => (
         <button
           key={t.name}
           onClick={() => {
-            setTheme(t.name as any);
+            setTheme(t.name as Theme);
             playSound("tap");
           }}
           className={`p-1.5 lg:p-2 rounded-full transition-all active:scale-90 ${
@@ -91,34 +104,54 @@ export function Header({ currentDevice }: HeaderProps) {
           }`}
           title={`${t.name.charAt(0).toUpperCase() + t.name.slice(1)} Mode`}
         >
-          <t.icon className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5 lg:w-4.5 lg:h-4.5'}`} />
+          <t.icon
+            className={`${
+              isMobile ? "w-3 h-3" : "w-3.5 h-3.5 lg:w-4.5 lg:h-4.5"
+            }`}
+          />
         </button>
       ))}
     </div>
   );
 
-  const CurrentDeviceStatus = (isMobile: boolean) => currentDevice && currentDevice.name && (
-    <div className={`${isMobile ? 'glass-pill px-2' : 'glass-pill px-3 py-2'} group/pill hover:bg-black/10 dark:hover:bg-white/5 min-w-0`}>
-      <div className="relative shrink-0">
-        <img
-          src={currentDevice?.avatar}
-          alt={currentDevice?.name}
-          className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5 lg:w-6 lg:h-6'} rounded-full ring-1 ring-primary/40 group-hover/pill:ring-primary/60 transition-all`}
-        />
-        <div className={`absolute -bottom-0.5 -right-0.5 ${isMobile ? 'w-2 h-2' : 'w-2 h-2'} bg-green-500 rounded-full border border-background shadow-xs group-hover/pill:scale-110 transition-transform`} />
-      </div>
-      <div className="flex flex-col min-w-0">
-        {!isMobile && (
-          <span className="text-status hidden lg:block opacity-60">
-            {currentDevice?.ip ? `${currentDevice.ip}` : 'Local Node'}
+  const CurrentDeviceStatus = (isMobile: boolean) =>
+    currentDevice &&
+    currentDevice.name && (
+      <div
+        className={`${
+          isMobile ? "glass-pill px-2" : "glass-pill px-3 py-2"
+        } group/pill hover:bg-black/10 dark:hover:bg-white/5 min-w-0`}
+      >
+        <div className="relative shrink-0">
+          <img
+            src={currentDevice?.avatar}
+            alt={currentDevice?.name}
+            className={`${
+              isMobile ? "w-5 h-5" : "w-5 h-5 lg:w-6 lg:h-6"
+            } rounded-full ring-1 ring-primary/40 group-hover/pill:ring-primary/60 transition-all`}
+          />
+          <div
+            className={`absolute -bottom-0.5 -right-0.5 ${
+              isMobile ? "w-2 h-2" : "w-2 h-2"
+            } bg-green-500 rounded-full border border-background shadow-xs group-hover/pill:scale-110 transition-transform`}
+          />
+        </div>
+        <div className="flex flex-col min-w-0">
+          {!isMobile && (
+            <span className="text-status hidden lg:block opacity-60">
+              {currentDevice?.ip ? `${currentDevice.ip}` : "Local Node"}
+            </span>
+          )}
+          <span
+            className={`${
+              isMobile ? "text-xs" : "text-sm"
+            } text-device-name text-foreground truncate font-medium flex items-center gap-1`}
+          >
+            {currentDevice?.name}
           </span>
-        )}
-        <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-device-name text-foreground truncate font-medium flex items-center gap-1`}>
-          {currentDevice?.name}
-        </span>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   const SoundToggle = (
     <button

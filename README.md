@@ -7,7 +7,8 @@ The Getransfr Client is a high-performance, web-based frontend for the Getransfr
 - **Direct P2P Transfers**: Secure browser-to-browser communication using **WebRTC**, keeping your data off intermediate servers.
 - **Reliable 1-to-1 Engine**: Dedicated transmission pipe engineered for maximum bandwidth utilization and rock-solid stability.
 - **Direct-to-Disk Streaming**: Integrates the **File System Access API** to stream files directly to disk, eliminating memory bottlenecks for massive transfers.
-- **Clipboard & Text Share**: Instantly share text snippets, links, and snippets between connected devices with a single click.
+- **Advanced Text Sharing**: Instantly share snippets and URLs. Features **Smart Link Detection** to open URLs directly, **Auto-Focus** input for speed, and `Ctrl+Enter` shortcuts.
+- **Privacy-First History**: Keeps the last 4 received snippets in local storage for quick access. Authenticated zero-knowledge design ensures history **auto-expires after 1 hour** for complete privacy.
 - **Smart Connection Recovery**: Automated **ICE Restarts** to automatically recover from network drops or IP switches during transfers.
 - **PWA & Share Target**: Fully installable as a Progressive Web App. Support for the **Web Share Target API** allows you to "Share to Getransfr" from other apps.
 - **Dynamic Audio & Haptics**: Integrated sound effects and high-precision haptic feedback for a premium interactive experience.
@@ -28,4 +29,3 @@ The Getransfr Client is a high-performance, web-based frontend for the Getransfr
 - **Socket.io**: Real-time signaling and presence management.
 - **Framer Motion**: Premium, hardware-accelerated animations.
 - **Lucide React**: Sleek, consistent iconography.
-

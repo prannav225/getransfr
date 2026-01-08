@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light" | "system" | "glass" | "cyberpunk" | "retro";
+export type Theme =
+  | "dark"
+  | "light"
+  | "system"
+  | "glass"
+  | "cyberpunk"
+  | "retro";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -13,7 +19,9 @@ type ThemeProviderState = {
   setTheme: (theme: Theme) => void;
 };
 
-const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined);
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
+  undefined
+);
 
 export function ThemeProvider({
   children,
@@ -45,15 +53,19 @@ export function ThemeProvider({
         : "light";
     }
 
-    const isDarkTheme = activeTheme === "dark" || activeTheme === "glass" || activeTheme === "cyberpunk" || activeTheme === "retro";
-    
+    const isDarkTheme =
+      activeTheme === "dark" ||
+      activeTheme === "glass" ||
+      activeTheme === "cyberpunk" ||
+      activeTheme === "retro";
+
     root.classList.add(activeTheme);
     if (isDarkTheme) {
       root.classList.add("dark");
     }
-    
+
     // Set color-scheme on root element for system UI theme matching.
-    root.style.setProperty('color-scheme', isDarkTheme ? 'dark' : 'light');
+    root.style.setProperty("color-scheme", isDarkTheme ? "dark" : "light");
 
     // Atmospheric theme colors for status bar integration
     const themeColors: Record<string, string> = {
@@ -61,33 +73,39 @@ export function ThemeProvider({
       dark: "#020617",
       glass: "#0a1220", // Deep Navy Glow
       cyberpunk: "#051616", // Tech Teal Glow
-      retro: "#0c0a05"
+      retro: "#0c0a05",
     };
 
     const color = themeColors[activeTheme] || themeColors.light;
 
     // Standard meta update (not deleting the tag)
-    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+    let meta = document.querySelector(
+      'meta[name="theme-color"]'
+    ) as HTMLMetaElement | null;
     if (!meta) {
-        meta = document.createElement('meta');
-        meta.name = "theme-color";
-        document.head.appendChild(meta);
+      meta = document.createElement("meta");
+      meta.name = "theme-color";
+      document.head.appendChild(meta);
     }
-    meta.setAttribute('content', color);
+    meta.setAttribute("content", color);
 
     // Sync backgrounds
     document.body.style.backgroundColor = color;
     root.style.backgroundColor = color;
 
     // Standard Apple meta update
-    let appleMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement | null;
+    let appleMeta = document.querySelector(
+      'meta[name="apple-mobile-web-app-status-bar-style"]'
+    ) as HTMLMetaElement | null;
     if (!appleMeta) {
-        appleMeta = document.createElement('meta');
-        appleMeta.name = "apple-mobile-web-app-status-bar-style";
-        document.head.appendChild(appleMeta);
+      appleMeta = document.createElement("meta");
+      appleMeta.name = "apple-mobile-web-app-status-bar-style";
+      document.head.appendChild(appleMeta);
     }
-    appleMeta.setAttribute('content', isDarkTheme ? "black-translucent" : "default");
-
+    appleMeta.setAttribute(
+      "content",
+      isDarkTheme ? "black-translucent" : "default"
+    );
   }, [theme, mounted]);
 
   const value = {
