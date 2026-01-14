@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Analytics } from "@vercel/analytics/react";
 import { Route, Switch } from "wouter";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="getransfr-theme">
@@ -23,6 +24,7 @@ function App() {
       </Switch>
       <Toaster position="top-right" />
       <Analytics />
+      <SpeedInsights />
     </ThemeProvider>
   );
 }
