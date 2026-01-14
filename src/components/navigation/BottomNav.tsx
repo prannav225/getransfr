@@ -13,8 +13,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const [clickedTab, setClickedTab] = useState<string | null>(null);
 
   const tabs = [
-    { id: "send", label: "Send", icon: ArrowUpRight },
     { id: "receive", label: "Receive", icon: ArrowDownLeft },
+    { id: "send", label: "Send", icon: ArrowUpRight },
   ] as const;
 
   return (

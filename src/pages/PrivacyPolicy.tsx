@@ -18,159 +18,169 @@ export function PrivacyPolicy() {
 
   const sections = [
     {
-      icon: <Shield className="w-6 h-6 text-primary" />,
-      title: "Your privacy matters.",
+      icon: <Shield className="w-5 h-5 text-muted-foreground" />,
+      title: "Data Sovereignty",
       content:
-        "Getransfr is designed to work locally and privately. We do not upload, store, or inspect your files or text.",
+        "Getransfr is architected for local-first operations. We do not transmit, analyze, or store your private files or text data on any central servers.",
     },
     {
-      icon: <Server className="w-6 h-6 text-emerald-500" />,
-      title: "What we transfer",
+      icon: <Server className="w-5 h-5 text-muted-foreground" />,
+      title: "Transmission Protocol",
       content: (
         <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-1">
-          <li>Files you choose to send</li>
-          <li>Text or links you explicitly share</li>
+          <li>End-user selected files</li>
+          <li>User-shared text payloads or URLs</li>
         </ul>
       ),
       footer:
-        "All transfers happen directly between devices or are relayed only temporarily to establish the connection.",
+        "Data is transferred point-to-point where possible. Relays are utilized only for NAT traversal and do not persist data.",
     },
     {
-      icon: <EyeOff className="w-6 h-6 text-rose-500" />,
-      title: "What we do NOT collect",
+      icon: <EyeOff className="w-5 h-5 text-muted-foreground" />,
+      title: "Zero-Knowledge Collection",
       content: (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-          <li className="flex items-center gap-2 text-muted-foreground">
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            No accounts
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <li className="flex items-center gap-2 text-muted-foreground font-medium">
+            <div className="w-1 h-1 rounded-full bg-border" />
+            No mandatory accounts
           </li>
-          <li className="flex items-center gap-2 text-muted-foreground">
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            No personal information
+          <li className="flex items-center gap-2 text-muted-foreground font-medium">
+            <div className="w-1 h-1 rounded-full bg-border" />
+            No PII collection
           </li>
-          <li className="flex items-center gap-2 text-muted-foreground">
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            No files or text content
+          <li className="flex items-center gap-2 text-muted-foreground font-medium">
+            <div className="w-1 h-1 rounded-full bg-border" />
+            No content inspection
           </li>
-          <li className="flex items-center gap-2 text-muted-foreground">
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            No device scanning
-          </li>
-          <li className="flex items-center gap-2 text-muted-foreground">
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            No background clipboard access
+          <li className="flex items-center gap-2 text-muted-foreground font-medium">
+            <div className="w-1 h-1 rounded-full bg-border" />
+            No persistent device identifiers
           </li>
         </ul>
       ),
     },
     {
-      icon: <HardDrive className="w-6 h-6 text-amber-500" />,
-      title: "Local storage",
+      icon: <HardDrive className="w-5 h-5 text-muted-foreground" />,
+      title: "On-Device Persistence",
       content:
-        "Some information (like recent transfers or device names) may be stored locally on your device for convenience. This data never leaves your device.",
+        "Volatile metadata such as transfer logs or temporary device names are stored within the client-side environment. This information never leaves your browser's local sandbox.",
     },
     {
-      icon: <Smartphone className="w-6 h-6 text-indigo-500" />,
-      title: "Third-party services",
+      icon: <Smartphone className="w-5 h-5 text-muted-foreground" />,
+      title: "Third-Party Infrastructure",
       content:
-        "Getransfr may use minimal third-party services for hosting or analytics. These services do not have access to your files or shared content.",
+        "We utilize static web hosting and minimal telemetry to monitor service health. These providers have no visibility into the actual data being transferred.",
     },
     {
-      icon: <Lock className="w-6 h-6 text-slate-500 dark:text-slate-400" />,
-      title: "Changes to this policy",
+      icon: <Lock className="w-5 h-5 text-muted-foreground" />,
+      title: "Policy Amendments",
       content:
-        "If this policy changes, the updated version will always be available on this page.",
+        "Any modifications to our privacy standards will be reflected on this page with an updated revision date.",
     },
   ];
 
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-background text-foreground flex flex-col font-sans">
-      {/* Dynamic Background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/5 blur-[120px]" />
+      {/* Muted Background Layer */}
+      <div className="fixed inset-0 pointer-events-none opacity-20">
+        <div className="absolute inset-0 bg-gradient-to-tr from-background via-muted/5 to-background" />
       </div>
 
-      {/* Header - Fixed/Absolute Glass Layer */}
-      <div className="absolute top-0 left-0 right-0 z-40 p-4 sm:p-6 pt-[max(0.75rem,env(safe-area-inset-top))] pointer-events-none">
-        <div className="pointer-events-auto relative">
-          <Header currentDevice={null} />
-        </div>
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-40 p-4 sm:p-6 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <Header currentDevice={null} />
       </div>
 
-      {/* Scrollable Content */}
+      {/* Content Container */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto px-4 sm:px-6 pt-32 sm:pt-40 pb-12 custom-scrollbar z-0"
+        className="flex-1 overflow-y-auto px-4 sm:px-6 pt-24 sm:pt-32 pb-12 custom-scrollbar z-0"
       >
-        <div className="max-w-2xl mx-auto space-y-6 py-4">
-          <div className="mb-8 space-y-4">
+        <div className="max-w-3xl mx-auto py-8">
+          <div className="mb-12">
             <Link href="/">
-              <a className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors mb-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Home
+              <a className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors mb-6 group">
+                <ArrowLeft className="w-3 h-3 transition-transform group-hover:-translate-x-1" />
+                Return to Application
               </a>
             </Link>
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+
+            <div className="space-y-2 border-l-2 border-primary/20 pl-6">
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight font-outfit">
                 Privacy Policy
               </h1>
-              <p className="text-muted-foreground mt-2">
-                Last updated: January 2026
-              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                  Official Document
+                </span>
+                <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                <p className="text-xs text-muted-foreground font-medium">
+                  Revision: January 2026
+                </p>
+              </div>
             </div>
           </div>
-          {sections.map((section, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay: index * 0.05,
-                type: "spring",
-                stiffness: 100,
-              }}
-              className="bg-glass-card rounded-[var(--radius-lg)] p-5 sm:p-6 border border-border/50 shadow-sm"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-2.5 rounded-xl bg-background/50 ring-1 ring-border/50 shrink-0">
-                  {section.icon}
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold">{section.title}</h2>
-                  <div className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                    {section.content}
+
+          <div className="grid grid-cols-1 gap-4">
+            {sections.map((section, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="bg-glass-card rounded-3xl p-6 sm:p-8 border border-border/40"
+              >
+                <div className="flex flex-col sm:flex-row items-start gap-6">
+                  <div className="p-3 rounded-2xl bg-muted/20 border border-border/40 shrink-0">
+                    {section.icon}
                   </div>
-                  {section.footer && (
-                    <p className="text-sm text-muted-foreground/80 mt-2 italic">
-                      {section.footer}
-                    </p>
-                  )}
+                  <div className="space-y-3">
+                    <h2 className="text-lg font-bold tracking-tight font-outfit">
+                      {section.title}
+                    </h2>
+                    <div className="text-sm sm:text-base text-muted-foreground leading-relaxed font-inter">
+                      {section.content}
+                    </div>
+                    {section.footer && (
+                      <p className="inline-block px-3 py-1 rounded-lg bg-background/50 border border-border/20 text-xs text-muted-foreground/60 mt-4">
+                        {section.footer}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Contact Section */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-12 p-6 rounded-[var(--radius-xl)] bg-indigo-500/5 border border-indigo-500/10 text-center space-y-2"
+            transition={{ delay: 0.4 }}
+            className="mt-16 p-8 rounded-[2.5rem] bg-glass-card border border-border/40 flex flex-col items-center text-center space-y-4"
           >
-            <div className="mx-auto w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center mb-3">
-              <Mail className="w-5 h-5 text-indigo-500" />
+            <div className="p-4 rounded-full bg-muted/20 border border-border/40">
+              <Mail className="w-6 h-6 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold text-lg">Still have questions?</h3>
-            <p className="text-sm text-muted-foreground pb-2">
-              We're happy to answer any questions about our privacy practices.
-            </p>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold font-outfit">
+                Policy Inquiries
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                For detailed technical clarifications or legal inquiries
+                regarding our privacy standards, please reach out via our secure
+                channel.
+              </p>
+            </div>
             <a
               href="mailto:pra9v@proton.me"
-              className="inline-block px-4 py-2 bg-indigo-500 text-white rounded-full text-sm font-medium hover:bg-indigo-600 transition-colors shadow-lg shadow-indigo-500/20"
+              className="mt-4 px-8 py-3 bg-foreground text-background rounded-full text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all hover:scale-[1.02]"
             >
-              pra9v@proton.me
+              Contact DPO
             </a>
           </motion.div>
-          <div className="h-12" /> {/* Spacer */}
+
+          <div className="h-12" />
         </div>
       </div>
     </div>

@@ -224,14 +224,14 @@ export function TransferProgress({
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              className={`relative overflow-hidden bg-glass-card rounded-[var(--radius-xl)] p-6 sm:p-8 shadow-2xl text-card-foreground transition-all duration-700 ${
+              className={`relative overflow-hidden bg-glass-card rounded-[2.5rem] p-5 sm:p-7 shadow-2xl text-card-foreground transition-all duration-700 ${
                 initialProgress === 100
                   ? "ring-2 ring-primary ring-offset-4 ring-offset-background shadow-[0_0_50px_rgba(var(--primary),0.3)]"
                   : ""
               }`}
             >
               {/* Drag Handle for Mobile */}
-              <div className="w-12 h-1.5 bg-muted/30 rounded-full mx-auto mb-6 sm:hidden" />
+              <div className="w-10 h-1 bg-muted/20 rounded-full mx-auto mb-4 md:hidden" />
 
               {initialProgress === 100 && (
                 <motion.div
@@ -242,7 +242,7 @@ export function TransferProgress({
                 />
               )}
 
-              <div className="flex items-start justify-between mb-6 gap-4">
+              <div className="flex items-center justify-between mb-5 gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="text-[var(--text-lg)] font-bold truncate">
@@ -344,14 +344,14 @@ export function TransferProgress({
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 50, opacity: 0 }}
-              className={`relative overflow-hidden bg-glass-card rounded-[var(--radius-xl)] p-6 sm:p-8 shadow-2xl text-card-foreground transition-all duration-700 ${
+              className={`relative overflow-hidden bg-glass-card rounded-[2.5rem] p-5 sm:p-7 shadow-2xl text-card-foreground transition-all duration-700 ${
                 transfer.progress === 100
                   ? "ring-2 ring-green-500 ring-offset-4 ring-offset-background shadow-[0_0_50px_rgba(34,197,94,0.3)]"
                   : ""
               }`}
             >
               {/* Drag Handle for Mobile */}
-              <div className="w-12 h-1.5 bg-muted/30 rounded-full mx-auto mb-6 sm:hidden" />
+              <div className="w-10 h-1 bg-muted/20 rounded-full mx-auto mb-4 md:hidden" />
 
               {transfer.progress === 100 && (
                 <motion.div
@@ -362,7 +362,7 @@ export function TransferProgress({
                 />
               )}
 
-              <div className="flex items-start justify-between mb-6 gap-4">
+              <div className="flex items-center justify-between mb-5 gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="text-[var(--text-lg)] font-bold truncate">

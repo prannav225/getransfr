@@ -94,7 +94,6 @@ export function Home() {
   const handleFileRemove = (index: number) => {
     triggerHaptic("medium");
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-    toast.success("File removed successfully");
   };
 
   const handleClipboardClick = async (to: string) => {
@@ -335,7 +334,7 @@ export function Home() {
     },
   };
 
-  const [activeTab, setActiveTab] = useState<"send" | "receive">("send");
+  const [activeTab, setActiveTab] = useState<"send" | "receive">("receive");
 
   const handleTabChange = (tab: "send" | "receive") => {
     if (tab === activeTab) return;
@@ -458,7 +457,7 @@ export function Home() {
 
       {/* Main Layout Container */}
       <motion.div
-        className="container mx-auto max-w-6xl relative z-10 h-full"
+        className="container mx-auto max-w-7xl relative z-10 h-full px-4 sm:px-8 lg:px-12"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -476,7 +475,7 @@ export function Home() {
         {/* Scrollable Content Layer - Full Height */}
         <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
           {/* Content Wrapper with Space for Header */}
-          <div className="min-h-full flex flex-col p-4 sm:p-6 pt-[9rem] sm:pt-28 pb-32">
+          <div className="min-h-full flex flex-col p-4 sm:p-6 lg:p-8 pt-[8.5rem] lg:pt-40 pb-32">
             {/* View Container - Responsive Cross-Fade */}
             <div className="flex-1 relative">
               <Suspense
@@ -503,6 +502,11 @@ export function Home() {
                         selectedFiles={selectedFiles}
                         handleFileSelect={handleFileSelect}
                         handleFileRemove={handleFileRemove}
+                        onClearAll={() => {
+                          triggerHaptic("medium");
+                          setSelectedFiles([]);
+                          toast.success("Selection cleared");
+                        }}
                         isSending={isSending}
                       />
                     ) : (

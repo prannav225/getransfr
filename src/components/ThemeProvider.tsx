@@ -1,12 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type Theme =
-  | "dark"
-  | "light"
-  | "system"
-  | "glass"
-  | "cyberpunk"
-  | "retro";
+export type Theme = "dark" | "light" | "system";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -44,7 +38,7 @@ export function ThemeProvider({
 
     const root = window.document.documentElement;
 
-    root.classList.remove("light", "dark", "glass", "cyberpunk", "retro");
+    root.classList.remove("light", "dark");
 
     let activeTheme = theme;
     if (theme === "system") {
@@ -53,11 +47,7 @@ export function ThemeProvider({
         : "light";
     }
 
-    const isDarkTheme =
-      activeTheme === "dark" ||
-      activeTheme === "glass" ||
-      activeTheme === "cyberpunk" ||
-      activeTheme === "retro";
+    const isDarkTheme = activeTheme === "dark";
 
     root.classList.add(activeTheme);
     if (isDarkTheme) {
@@ -69,11 +59,8 @@ export function ThemeProvider({
 
     // Atmospheric theme colors for status bar integration
     const themeColors: Record<string, string> = {
-      light: "#f8fafc",
-      dark: "#020617",
-      glass: "#0a1220", // Deep Navy Glow
-      cyberpunk: "#051616", // Tech Teal Glow
-      retro: "#0c0a05",
+      light: "#f7f7f7", // Matches new ivory/frosted background
+      dark: "#0f0f0f", // Matches new ebony background
     };
 
     const color = themeColors[activeTheme] || themeColors.light;

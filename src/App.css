@@ -21,11 +21,47 @@
 }
 
 .bg-glass-card {
-  background-color: hsl(var(--card) / var(--card-opacity, 0.6));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid hsl(var(--border) / var(--border-opacity, 0.4));
-  box-shadow: var(--card-shadow, 0 8px 32px -4px rgba(0, 0, 0, 0.1));
+  background-color: hsl(var(--card) / var(--card-opacity, 0.4));
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid hsl(var(--border) / var(--border-opacity, 1));
+  position: relative;
+  /* Fix for rectangular rendering artifacts on Macs/Safari */
+  isolation: isolate;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
+}
+
+/* Decoupled shadow layer to prevent backdrop-filter artifacts */
+.bg-glass-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: var(--card-shadow);
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+/* Glass Edge Refinement */
+.bg-glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    var(--glass-edge-top),
+    transparent 50%,
+    var(--glass-edge-bottom)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .bg-glass-card-hover {
@@ -45,42 +81,49 @@
 @layer base {
   :root {
     --color-scheme: light;
-    color-scheme: light; /* Fallback */
+    color-scheme: light;
     color-scheme: var(--color-scheme);
 
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
+    /* Soft White Base */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 12%;
+    --card-opacity: 0.4;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 12%;
 
     --primary: 247 90% 60%;
-    --primary-foreground: 210 40% 98%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 247 90% 60%;
+    --accent-foreground: 0 0% 12%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 32% 80%;
-    --input: 214.3 32% 80%;
+    --border: 247 12% 86%;
+    --input: 247 12% 86%;
     --ring: 247 90% 60%;
+    --border-opacity: 2;
 
-    /* Responsive Border Radii - Scaled for different screen sizes */
-    --radius-sm: 0.5rem; /* 8px - Chips/Small elements */
-    --radius-md: 0.875rem; /* 14px - Inner components */
-    --radius-lg: 1.25rem; /* 20px - Secondary cards */
-    --radius-xl: 1.75rem; /* 28px - Main containers */
+    /* Glass Physics - Light */
+    --glass-highlight: rgba(255, 255, 255, 0.3);
+    --glass-edge-top: rgba(255, 255, 255, 0.5);
+    --glass-edge-bottom: transparent;
+
+    --radius-sm: 0.5rem;
+    --radius-md: 0.875rem;
+    --radius-lg: 1.25rem;
+    --radius-xl: 1.75rem;
     --radius-full: 9999px;
     --radius: var(--radius-md);
 
@@ -96,136 +139,58 @@
     }
 
     /* Standardized Font Sizes */
-    --text-xs: 0.75rem; /* 12px */
-    --text-sm: 0.875rem; /* 14px */
-    --text-base: 1rem; /* 16px */
-    --text-lg: 1.125rem; /* 18px */
-    --text-xl: 1.25rem; /* 20px */
-    --text-2xl: 1.5rem; /* 24px */
-    --text-3xl: 1.875rem; /* 30px */
-    --text-4xl: 2.25rem; /* 36px */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1.125rem;
+    --text-lg: 1.25rem;
+    --text-xl: 1.5rem;
+    --text-2xl: 1.875rem;
+    --text-3xl: 2.25rem;
+    --text-4xl: 3rem;
 
-    /* Fixed Card Shadow */
-    --card-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.15);
-    --border-opacity: 1;
+    --card-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.04),
+      0 4px 12px -4px rgba(0, 0, 0, 0.02);
   }
 
   .dark {
     --color-scheme: dark;
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Premium Ebony Dark Mode - Rich Black, not pitch dark */
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
+    --card-opacity: 0.45;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 247 90% 70%; /* Lighter Indigo for Dark Mode */
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 247 95% 72%;
+    --primary-foreground: 247 50% 5%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 0% 18%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 25%; /* Slightly more visible border for dark mode */
-    --input: 217.2 32.6% 25%;
-    --ring: 242 90% 70%;
-    --border-opacity: 0.6;
-    --card-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.5);
+    --border: 0 0% 100%;
+    --input: 0 0% 100%;
+    --ring: 247 95% 72%;
+    --border-opacity: 0.04; /* Extremely faint border for dark glass */
+    --card-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6);
+
+    /* Glass Physics - Dark */
+    --glass-highlight: rgba(255, 255, 255, 0.02);
+    --glass-edge-top: rgba(255, 255, 255, 0.06);
+    --glass-edge-bottom: transparent;
   }
-
-  .glass {
-    --background: 210 100% 3%;
-    --foreground: 210 40% 98%;
-    --card: 210 100% 10%;
-    --card-foreground: 210 40% 98%;
-    --card-opacity: 0.15;
-    --primary: 200 100% 50%; /* Ice Blue */
-    --primary-foreground: 210 100% 5%;
-    --secondary: 180 100% 50%; /* Cyan */
-    --accent: 250 100% 70%; /* Soft Violet */
-    --border: 200 100% 50%;
-    --border-opacity: 0.25;
-    --card-shadow: 0 0 50px -10px rgba(0, 150, 255, 0.1),
-      inset 0 0 20px rgba(255, 255, 255, 0.05);
-    --muted-foreground: 210 20% 70%;
-  }
-
-  .cyberpunk {
-    --background: 230 50% 2%; /* Deep Tech Blue */
-    --foreground: 180 100% 90%;
-    --card: 230 50% 5%;
-    --card-foreground: 180 100% 95%;
-    --card-opacity: 0.6;
-    --primary: 180 100% 50%; /* Electric Cyan */
-    --primary-foreground: 230 50% 2%;
-    --secondary: 35 100% 50%; /* Cyber Orange */
-    --accent: 140 100% 50%; /* Matrix Green */
-    --border: 180 100% 50%;
-    --border-opacity: 0.4;
-    --card-shadow: 0 0 30px rgba(0, 255, 255, 0.15),
-      inset 0 0 10px rgba(0, 255, 255, 0.05);
-    --muted-foreground: 230 30% 60%;
-    --radius-sm: 0.125rem;
-    --radius-md: 0.25rem;
-    --radius-lg: 0.375rem;
-    --radius-xl: 0.5rem;
-    --radius: var(--radius-md);
-  }
-
-  .retro {
-    --background: 45 30% 2%;
-    --foreground: 45 100% 70%;
-    --card: 45 30% 5%;
-    --card-foreground: 45 100% 75%;
-    --card-opacity: 0.9;
-    --primary: 45 100% 50%; /* Amber */
-    --primary-foreground: 45 30% 2%;
-    --secondary: 45 100% 20%;
-    --border: 45 100% 50%;
-    --border-opacity: 0.3;
-    --radius-sm: 0px;
-    --radius-md: 2px;
-    --radius-lg: 4px;
-    --radius-xl: 6px;
-    --radius: var(--radius-md);
-    --card-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.5),
-      inset 1px 1px 0px 0px rgba(255, 176, 0, 0.1);
-    --muted-foreground: 45 30% 50%;
-  }
-}
-
-.retro::before {
-  content: " ";
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(
-      rgba(18, 16, 16, 0) 50%,
-      rgba(20, 15, 0, 0.15) 50%
-    ),
-    linear-gradient(
-      90deg,
-      rgba(255, 0, 0, 0.03),
-      rgba(0, 255, 0, 0.01),
-      rgba(0, 0, 255, 0.03)
-    );
-  z-index: 100;
-  background-size: 100% 3px, 3px 100%;
-  pointer-events: none;
-  opacity: 0.5;
 }
 
 @layer base {
@@ -256,7 +221,7 @@
     min-height: -webkit-fill-available;
     font-size: var(--text-base);
     line-height: 1.5;
-    overscroll-behavior: none;
+    overscroll-behavior-y: auto; /* Elastic feel on Mac/iOS */
     -webkit-overflow-scrolling: touch;
   }
   button,
@@ -304,55 +269,6 @@
 
 .bg-nav-inactive {
   @apply bg-transparent text-muted-foreground hover:text-foreground;
-}
-
-.cyberpunk::before {
-  content: " ";
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-    linear-gradient(
-      90deg,
-      rgba(255, 0, 0, 0.06),
-      rgba(0, 255, 0, 0.02),
-      rgba(0, 0, 255, 0.06)
-    );
-  z-index: 100;
-  background-size: 100% 2px, 3px 100%;
-  pointer-events: none;
-}
-
-@keyframes scanline {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(100%);
-  }
-}
-
-.cyberpunk::after {
-  content: " ";
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 255, 255, 0.03) 50%,
-    transparent 100%
-  );
-  opacity: 0.1;
-  z-index: 101;
-  animation: scanline 8s linear infinite;
-  pointer-events: none;
 }
 
 #root {
@@ -407,9 +323,16 @@
   scrollbar-width: none;
 }
 
-/* Custom scrollbar refinement (if still wanted elsewhere) */
+/* Custom scrollbar refinement */
+.custom-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+  scroll-padding-top: 2rem;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-  display: none; /* Forced to hide for consistency */
+  display: none;
 }
 
 @keyframes breathe {
@@ -430,7 +353,23 @@
 
 /* Consistent Glass Effects */
 .glass-panel {
-  @apply bg-white/5 dark:bg-black/20 backdrop-blur-md border border-white/10 shadow-inner;
+  background-color: hsl(var(--card) / var(--card-opacity, 0.1));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  /* Use a more visible border opacity for secondary glass elements */
+  border: 1px solid hsl(var(--border) / calc(var(--border-opacity, 1) + 0.2));
+  position: relative;
+  isolation: isolate;
+}
+
+.glass-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: var(--card-shadow);
+  pointer-events: none;
 }
 
 .glass-pill {

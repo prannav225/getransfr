@@ -1,9 +1,10 @@
-import { Sun, Moon, Sparkles, Zap, Monitor } from "lucide-react";
+import { Sun, Moon, Monitor } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Device } from "@/types/device";
 import { useTheme, Theme } from "@/components/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
+import { motion } from "framer-motion";
 
 interface HeaderProps {
   currentDevice: Device | null;
@@ -41,12 +42,18 @@ export function Header({ currentDevice }: HeaderProps) {
     {
       name: "light",
       icon: Sun,
-      color: "bg-white text-orange-500 shadow-sm border border-border",
+      color: "bg-primary text-primary-foreground shadow-lg shadow-primary/20",
     },
-    { name: "dark", icon: Moon, color: "bg-[#020817] text-blue-400" },
-    { name: "glass", icon: Sparkles, color: "bg-blue-500/20 text-blue-400" },
-    { name: "cyberpunk", icon: Zap, color: "bg-cyan-500/20 text-cyan-400" },
-    { name: "retro", icon: Monitor, color: "bg-amber-500/20 text-amber-500" },
+    {
+      name: "dark",
+      icon: Moon,
+      color: "bg-primary text-primary-foreground shadow-lg shadow-primary/20",
+    },
+    {
+      name: "system",
+      icon: Monitor,
+      color: "bg-primary text-primary-foreground shadow-lg shadow-primary/20",
+    },
   ];
 
   const Brand = (
@@ -70,8 +77,8 @@ export function Header({ currentDevice }: HeaderProps) {
   const ThemeToggles = (isMobile: boolean) => (
     <div
       className={`flex items-center ${
-        isMobile ? "gap-0.5" : "gap-1"
-      } bg-black/5 dark:bg-white/5 p-1 rounded-full border border-border/50 shrink-0`}
+        isMobile ? "gap-1" : "gap-1.5"
+      } bg-black/10 dark:bg-white/5 p-1 rounded-full border border-border/10 shrink-0 relative`}
     >
       {themes.map((t) => (
         <button
@@ -80,16 +87,23 @@ export function Header({ currentDevice }: HeaderProps) {
             setTheme(t.name as Theme);
             triggerHaptic("light");
           }}
-          className={`p-1.5 lg:p-2 rounded-full transition-all active:scale-90 ${
+          className={`relative p-1.5 lg:p-2 rounded-full transition-colors z-10 ${
             theme === t.name
-              ? `${t.color} shadow-xs ring-1 ring-primary/20`
-              : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5"
+              ? "text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
           title={`${t.name.charAt(0).toUpperCase() + t.name.slice(1)} Mode`}
         >
+          {theme === t.name && (
+            <motion.div
+              layoutId={isMobile ? "activeThemeMobile" : "activeThemeDesktop"}
+              className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/20"
+              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+            />
+          )}
           <t.icon
-            className={`${
-              isMobile ? "w-3 h-3" : "w-3.5 h-3.5 lg:w-4.5 lg:h-4.5"
+            className={`relative z-20 ${
+              isMobile ? "w-3.5 h-3.5" : "w-4 h-4 lg:w-5 lg:h-5"
             }`}
           />
         </button>
@@ -102,35 +116,35 @@ export function Header({ currentDevice }: HeaderProps) {
     currentDevice.name && (
       <div
         className={`${
-          isMobile ? "glass-pill px-2" : "glass-pill px-3 py-2"
-        } group/pill hover:bg-black/10 dark:hover:bg-white/5 min-w-0`}
+          isMobile ? "px-2.5 py-1.5" : "px-3 py-1.5"
+        } group/pill flex items-center gap-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-all duration-300 min-w-0 border-none`}
       >
-        <div className="relative shrink-0">
+        <div className="relative shrink-0 flex items-center">
+          <div className="absolute inset-0 bg-green-500/20 blur-sm rounded-full animate-pulse" />
           <img
             src={currentDevice?.avatar}
             alt={currentDevice?.name}
             className={`${
-              isMobile ? "w-5 h-5" : "w-5 h-5 lg:w-6 lg:h-6"
-            } rounded-full ring-1 ring-primary/40 group-hover/pill:ring-primary/60 transition-all`}
+              isMobile ? "w-6 h-6" : "w-7 h-7 lg:w-8 lg:h-8"
+            } rounded-full ring-2 ring-primary/20 group-hover/pill:ring-primary/40 transition-all z-10 object-cover`}
           />
-          <div
-            className={`absolute -bottom-0.5 -right-0.5 ${
-              isMobile ? "w-2 h-2" : "w-2 h-2"
-            } bg-green-500 rounded-full border border-background shadow-xs group-hover/pill:scale-110 transition-transform`}
-          />
+          <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 z-20">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500 border-2 border-background"></span>
+          </span>
         </div>
         <div className="flex flex-col min-w-0">
-          {!isMobile && (
-            <span className="text-status hidden lg:block opacity-60">
-              {currentDevice?.ip ? `${currentDevice.ip}` : "Local Node"}
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`${
+                isMobile ? "text-xs" : "text-sm"
+              } text-device-name text-foreground truncate font-bold tracking-tight`}
+            >
+              {currentDevice?.name}
             </span>
-          )}
-          <span
-            className={`${
-              isMobile ? "text-xs" : "text-sm"
-            } text-device-name text-foreground truncate font-medium flex items-center gap-1`}
-          >
-            {currentDevice?.name}
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60 leading-none">
+            Active Now
           </span>
         </div>
       </div>
