@@ -22,6 +22,14 @@ class RTCService {
     this.connectionManager = new ConnectionManagerClass(socket);
     this.dataChannelManager = new DataChannelManagerClass();
     this.setupSignaling();
+
+    // Listen for UI-driven cancel events (especially from the receiver side)
+    window.addEventListener(EVENTS.TRANSFER_CANCEL, (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.peerId) {
+        this.cancelTransfer(detail.peerId);
+      }
+    });
   }
 
   private setupSignaling(): void {
@@ -74,7 +82,9 @@ class RTCService {
       const pendingTransfer = this.transferRequests.get(peerId);
       if (pendingTransfer) {
         const metadata = pendingTransfer.files.map((f) => ({
-          name: f.name,
+          name:
+            (f as File & { webkitRelativePath?: string }).webkitRelativePath ||
+            f.name,
           size: f.size,
           type: f.type,
         }));
@@ -88,7 +98,10 @@ class RTCService {
     this.dataChannelManager.addDataChannel(peerId, channel);
   }
 
-  private handleDataChannelMessage(peerId: string, event: MessageEvent): void {
+  private async handleDataChannelMessage(
+    peerId: string,
+    event: MessageEvent
+  ): Promise<void> {
     if (typeof event.data === "string") {
       try {
         const message = JSON.parse(event.data);
@@ -108,12 +121,21 @@ class RTCService {
           case "file-complete":
             this.fileTransferManager.saveFile(peerId, message.name);
             break;
+          case "ack":
+            this.fileTransferManager.handleAck(peerId, message.byteLength);
+            break;
         }
       } catch (err) {
         console.error("[RTCService] JSON parse error:", err);
       }
     } else {
-      this.fileTransferManager.addChunk(peerId, event.data);
+      await this.fileTransferManager.addChunk(peerId, event.data);
+      const channel = this.dataChannelManager.getDataChannel(peerId);
+      if (channel && channel.readyState === "open") {
+        channel.send(
+          JSON.stringify({ type: "ack", byteLength: event.data.byteLength })
+        );
+      }
     }
   }
 
@@ -223,6 +245,10 @@ class RTCService {
       channel.send(JSON.stringify({ type: "cancel" }));
     }
     this.handleTransferCancelled(peerId);
+  }
+
+  public getConnectionType(peerId: string): "direct" | "relay" | "unknown" {
+    return this.connectionManager.getConnectionType(peerId);
   }
 
   private cleanupPeer(peerId: string): void {

@@ -27,9 +27,8 @@ const socket = io(SOCKET_URL, {
   autoConnect: true,
   path: "/socket.io",
   query: {
-    clientId: localStorage.getItem("deviceId")
-      ? localStorage.getItem("deviceId")
-      : undefined,
+    clientId: localStorage.getItem("deviceId") || undefined,
+    deviceName: localStorage.getItem("deviceName") || undefined,
   },
 }) as Socket;
 

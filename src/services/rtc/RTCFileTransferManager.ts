@@ -16,19 +16,34 @@ interface FileSystemWritableFileStream extends WritableStream {
 /**
  * SequentialTaskQueue
  * Ensures that file writes and closures happen in the exact order the messages arrived.
+ * Uses an array-based queue to avoid massive Promise chains in memory.
  */
 class SequentialTaskQueue {
-  private queue: Promise<void> = Promise.resolve();
+  private queue: (() => Promise<void>)[] = [];
+  private isProcessing = false;
 
   async push(task: () => Promise<void>): Promise<void> {
-    this.queue = this.queue.then(async () => {
-      try {
-        await task();
-      } catch (e) {
-        console.error("[TaskQueue] Operation failed:", e);
-      }
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          await task();
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
+      this.process();
     });
-    return this.queue;
+  }
+
+  private async process() {
+    if (this.isProcessing) return;
+    this.isProcessing = true;
+    while (this.queue.length > 0) {
+      const task = this.queue.shift();
+      if (task) await task();
+    }
+    this.isProcessing = false;
   }
 }
 
@@ -45,9 +60,23 @@ class RTCFileTransferManager {
   private dirHandles: Map<string, FileSystemHandle> = new Map();
   private currentFileIndices: Map<string, number> = new Map();
   private taskQueues: Map<string, SequentialTaskQueue> = new Map();
+  private ackWaiters: Map<string, { resolve: () => void; threshold: number }> =
+    new Map();
+  private totalAcked: Map<string, number> = new Map();
 
-  private static CHUNK_SIZE = 128 * 1024; // 128KB chunks
-  private static BUFFER_THRESHOLD = 8 * 1024 * 1024; // 8MB
+  private static CHUNK_SIZE = 256 * 1024; // 256KB - Optimal for mobile network stacks
+  private static BUFFER_THRESHOLD = 4 * 1024 * 1024; // 4MB safe network buffer
+
+  public handleAck(peerId: string, byteLength: number): void {
+    const currentAcked = (this.totalAcked.get(peerId) || 0) + byteLength;
+    this.totalAcked.set(peerId, currentAcked);
+
+    const waiter = this.ackWaiters.get(peerId);
+    if (waiter && currentAcked >= waiter.threshold) {
+      this.ackWaiters.delete(peerId);
+      waiter.resolve();
+    }
+  }
 
   public initializeSender(
     peerId: string,
@@ -79,15 +108,15 @@ class RTCFileTransferManager {
 
     if (fileSystemHandle) {
       try {
-        if (files.length === 1 && fileSystemHandle.kind === "file") {
+        if (fileSystemHandle.kind === "directory") {
+          this.dirHandles.set(peerId, fileSystemHandle);
+        } else if (fileSystemHandle.kind === "file" && files.length === 1) {
           this.fileStreams.set(
             peerId,
             (await (
               fileSystemHandle as unknown as FileSystemFileHandle
             ).createWritable()) as FileSystemWritableFileStream
           );
-        } else if (files.length > 1 && fileSystemHandle.kind === "directory") {
-          this.dirHandles.set(peerId, fileSystemHandle);
         }
       } catch (err) {
         console.error("[RTC] FS API Init Error:", err);
@@ -104,89 +133,109 @@ class RTCFileTransferManager {
     file: File,
     dataChannel: RTCDataChannel
   ): Promise<void> {
-    // Use a static URL for Worker concatenation to satisfy Vite & TypeScript
     const worker = new Worker(new URL("./TransferWorker.ts", import.meta.url), {
       type: "module",
     });
 
+    // Configure the data channel for high-speed bursts
+    dataChannel.bufferedAmountLowThreshold = 2 * 1024 * 1024; // 2MB "low" signal
+
     return new Promise((resolve, reject) => {
-      let offset = 0;
+      let readOffset = 0;
+      let sentOffset = 0;
       let lastUiUpdate = 0;
       const batchBase = this.sentSizes.get(peerId) || 0;
 
-      worker.onmessage = async (e: MessageEvent) => {
-        const { type, chunk, error } = e.data;
+      const MAX_IN_FLIGHT = 8 * 1024 * 1024; // 8MB Sliding Window
+      let isWaitingForAck = false;
 
-        if (type === "chunk") {
-          // Backpressure Check
-          if (
-            dataChannel.bufferedAmount > RTCFileTransferManager.BUFFER_THRESHOLD
-          ) {
-            await new Promise<void>((res) => {
-              const onLow = () => {
-                dataChannel.removeEventListener("bufferedamountlow", onLow);
-                clearInterval(poller);
-                res();
-              };
-              const poller = setInterval(() => {
-                if (
-                  dataChannel.bufferedAmount <
-                  RTCFileTransferManager.BUFFER_THRESHOLD / 2
-                ) {
-                  onLow();
-                }
-              }, 50);
-              dataChannel.addEventListener("bufferedamountlow", onLow);
-              setTimeout(onLow, 5000);
+      const requestNextChunk = () => {
+        if (readOffset >= file.size || dataChannel.readyState !== "open")
+          return;
+
+        // Flow control balancing Network vs Disk capacity
+        const inFlight = sentOffset - (this.totalAcked.get(peerId) || 0);
+
+        if (
+          inFlight > MAX_IN_FLIGHT ||
+          dataChannel.bufferedAmount > RTCFileTransferManager.BUFFER_THRESHOLD
+        ) {
+          if (!isWaitingForAck) {
+            isWaitingForAck = true;
+            this.ackWaiters.set(peerId, {
+              threshold: (this.totalAcked.get(peerId) || 0) + MAX_IN_FLIGHT / 2,
+              resolve: () => {
+                isWaitingForAck = false;
+                requestNextChunk();
+              },
             });
           }
+          return;
+        }
 
+        worker.postMessage({
+          type: "read",
+          file,
+          offset: readOffset,
+          chunkSize: RTCFileTransferManager.CHUNK_SIZE,
+        });
+        readOffset += Math.min(
+          RTCFileTransferManager.CHUNK_SIZE,
+          file.size - readOffset
+        );
+      };
+
+      dataChannel.onbufferedamountlow = () => requestNextChunk();
+
+      worker.onmessage = async (e: MessageEvent) => {
+        const { type, chunk, byteLength, error } = e.data;
+
+        if (type === "chunk") {
           try {
+            if (dataChannel.readyState !== "open") {
+              worker.terminate();
+              return reject(new Error("Connection lost"));
+            }
+
             dataChannel.send(chunk);
-            offset += chunk.byteLength;
+            sentOffset += byteLength;
+
+            requestNextChunk();
+
+            const now = Date.now();
+            if (now - lastUiUpdate > 200 || sentOffset >= file.size) {
+              const batchTotal = this.totalSizes.get(peerId) || file.size;
+              const totalSent = batchBase + sentOffset;
+              const progress = Math.min(
+                100,
+                Math.round((totalSent / batchTotal) * 100)
+              );
+              const speed =
+                totalSent /
+                ((now - (this.startTime.get(peerId) || now)) / 1000 || 0.001);
+
+              this.callbacks.get(peerId)?.onProgress(progress);
+              eventBus.emit(EVENTS.TRANSFER_STATS_UPDATE, {
+                peerId,
+                speed,
+                progress,
+                totalSize: batchTotal,
+                sentSize: totalSent,
+              });
+              lastUiUpdate = now;
+            }
+
+            if (sentOffset >= file.size) {
+              worker.terminate();
+              dataChannel.send(
+                JSON.stringify({ type: "file-complete", name: file.name })
+              );
+              this.sentSizes.set(peerId, batchBase + file.size);
+              resolve();
+            }
           } catch (err) {
             worker.terminate();
             return reject(err);
-          }
-
-          const now = Date.now();
-          if (now - lastUiUpdate > 100 || offset >= file.size) {
-            const batchTotal = this.totalSizes.get(peerId) || file.size;
-            const totalSent = batchBase + offset;
-            const progress = Math.min(
-              100,
-              Math.round((totalSent / batchTotal) * 100)
-            );
-            const speed =
-              totalSent /
-              ((now - (this.startTime.get(peerId) || now)) / 1000 || 0.001);
-
-            this.callbacks.get(peerId)?.onProgress(progress);
-            eventBus.emit(EVENTS.TRANSFER_STATS_UPDATE, {
-              peerId,
-              speed,
-              progress,
-              totalSize: batchTotal,
-              sentSize: totalSent,
-            });
-            lastUiUpdate = now;
-          }
-
-          if (offset < file.size) {
-            worker.postMessage({
-              type: "read",
-              file,
-              offset,
-              chunkSize: RTCFileTransferManager.CHUNK_SIZE,
-            });
-          } else {
-            worker.terminate();
-            console.log(`[RTC] Sending file-complete for: ${file.name}`);
-            dataChannel.send(
-              JSON.stringify({ type: "file-complete", name: file.name })
-            );
-            this.sentSizes.set(peerId, batchBase + file.size);
-            resolve();
           }
         } else if (type === "error") {
           worker.terminate();
@@ -194,12 +243,7 @@ class RTCFileTransferManager {
         }
       };
 
-      worker.postMessage({
-        type: "read",
-        file,
-        offset,
-        chunkSize: RTCFileTransferManager.CHUNK_SIZE,
-      });
+      requestNextChunk();
     });
   }
 
@@ -212,7 +256,8 @@ class RTCFileTransferManager {
 
     const chunkData = new Uint8Array(data);
 
-    queue.push(async () => {
+    // Await the push so we can signal ACK back only after it's in the queue pipeline
+    await queue.push(async () => {
       const metadata = this.metadata.get(peerId);
       const currentIdx = this.currentFileIndices.get(peerId) || 0;
       const currentFile = metadata?.[currentIdx];
@@ -222,11 +267,25 @@ class RTCFileTransferManager {
 
       if (!stream && this.dirHandles.has(peerId)) {
         try {
-          const dirHandle = this.dirHandles.get(peerId);
+          const dirHandle = this.dirHandles.get(
+            peerId
+          ) as unknown as FileSystemDirectoryHandle;
           if (dirHandle) {
-            const handle = await (
-              dirHandle as unknown as FileSystemDirectoryHandle
-            ).getFileHandle(currentFile.name, { create: true });
+            const pathParts = currentFile.name.split("/");
+            const fileName = pathParts.pop()!;
+            let currentDir = dirHandle;
+
+            // Traverse/Create subdirectories
+            for (const part of pathParts) {
+              if (!part) continue;
+              currentDir = await currentDir.getDirectoryHandle(part, {
+                create: true,
+              });
+            }
+
+            const handle = await currentDir.getFileHandle(fileName, {
+              create: true,
+            });
             stream =
               (await handle.createWritable()) as FileSystemWritableFileStream;
             if (stream) {
@@ -234,7 +293,7 @@ class RTCFileTransferManager {
             }
           }
         } catch (e) {
-          console.error("[RTC] Stream open fail:", e);
+          console.error("[RTC] Stream open fail (nested):", e);
         }
       }
 
@@ -250,9 +309,14 @@ class RTCFileTransferManager {
           let fileChunks = peerMap.get(currentFile.name);
           if (!fileChunks) {
             fileChunks = [];
-            peerMap.set(currentFile.name, fileChunks);
+            peerMap.set(
+              currentFile.name,
+              fileChunks as unknown as Uint8Array[]
+            );
           }
-          fileChunks.push(chunkData);
+          // Memory Safety: Store as a Blob immediately.
+          // Browsers can swap Blobs to disk more efficiently than Uint8Arrays.
+          (fileChunks as unknown as Blob[]).push(new Blob([chunkData]));
         }
       }
 
@@ -301,7 +365,7 @@ class RTCFileTransferManager {
         const fileChunks = peerMap?.get(fileName);
         if (fileChunks && fileChunks.length > 0) {
           const fileMeta = metadata.find((m) => m.name === fileName);
-          const blob = new Blob(fileChunks as BlobPart[], {
+          const blob = new Blob(fileChunks as unknown as BlobPart[], {
             type: fileMeta?.type || "application/octet-stream",
           });
           const url = URL.createObjectURL(blob);
@@ -340,6 +404,8 @@ class RTCFileTransferManager {
     this.taskQueues.delete(peerId);
     this.currentFileIndices.delete(peerId);
     this.dirHandles.delete(peerId);
+    this.ackWaiters.delete(peerId);
+    this.totalAcked.delete(peerId);
     this.startTime.delete(peerId);
   }
 }

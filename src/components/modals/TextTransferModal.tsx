@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { useSound } from "@/hooks/useSound";
+import { useHaptics } from "@/hooks/useHaptics";
 import { useSnippetHistory } from "@/hooks/useSnippetHistory";
 import { formatDistanceToNow } from "date-fns";
 
@@ -29,7 +29,7 @@ export function TextTransferModal({
   onAction,
   onClose,
 }: TextTransferModalProps) {
-  const { playSound } = useSound();
+  const { triggerHaptic } = useHaptics();
   const [text, setText] = useState(initialText);
   const [copied, setCopied] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -59,6 +59,7 @@ export function TextTransferModal({
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(textToCopy);
         setCopied(true);
+        triggerHaptic("medium");
         toast.success("Copied to clipboard");
         // Auto dismiss after a short delay to show success state
         setTimeout(() => {
@@ -86,6 +87,7 @@ export function TextTransferModal({
 
         if (successful) {
           setCopied(true);
+          triggerHaptic("medium");
           toast.success("Copied to clipboard");
           setTimeout(() => {
             setCopied(false);
@@ -144,7 +146,7 @@ export function TextTransferModal({
                   <ClipboardIcon className="w-5 h-5 text-primary" />
                 )}
               </div>
-              <h3 className="text-[var(--text-xl)] font-bold tracking-tight">
+              <h3 className="text-xl font-bold tracking-tight">
                 {mode === "send" ? "Share Text" : "Received Text"}
               </h3>
             </div>
@@ -156,7 +158,7 @@ export function TextTransferModal({
             </button>
           </div>
 
-          <p className="text-[var(--text-sm)] lg:text-[var(--text-base)] text-muted-foreground leading-relaxed">
+          <p className="text-muted-foreground text-sm lg:text-base leading-relaxed">
             {mode === "send" ? (
               <>
                 Sharing snippet with{" "}
@@ -193,11 +195,11 @@ export function TextTransferModal({
                   }
                 }}
                 placeholder="Paste text or link to send immediately"
-                className="w-full h-40 p-4 rounded-[var(--radius-lg)] bg-black/5 dark:bg-black/20 border border-white/10 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all resize-none text-[var(--text-sm)] lg:text-[var(--text-base)] custom-scrollbar text-foreground"
+                className="w-full h-40 p-4 rounded-[var(--radius-lg)] bg-black/5 dark:bg-black/20 border border-white/10 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all resize-none text-sm lg:text-base custom-scrollbar text-foreground"
                 autoFocus
               />
             ) : (
-              <div className="w-full max-h-60 overflow-y-auto p-4 rounded-[var(--radius-lg)] bg-black/5 dark:bg-black/20 border border-white/10 text-[var(--text-sm)] lg:text-[var(--text-base)] custom-scrollbar whitespace-pre-wrap break-words text-foreground">
+              <div className="w-full max-h-60 overflow-y-auto p-4 rounded-[var(--radius-lg)] bg-black/5 dark:bg-black/20 border border-white/10 text-sm lg:text-base custom-scrollbar whitespace-pre-wrap break-words text-foreground">
                 {text}
               </div>
             )}
@@ -223,7 +225,7 @@ export function TextTransferModal({
           <button
             onClick={() => {
               onClose();
-              playSound("tap");
+              triggerHaptic("light");
             }}
             className="flex-1 py-3.5 rounded-[var(--radius-lg)] font-bold text-sm text-foreground bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-white/10 shadow-sm transition-all active:scale-95"
           >
@@ -238,7 +240,7 @@ export function TextTransferModal({
               onClick={() => {
                 if (text.trim()) {
                   handleSend();
-                  playSound("tap");
+                  triggerHaptic("medium");
                 }
               }}
               className={`relative flex-[2] py-3.5 rounded-[var(--radius-lg)] font-bold text-sm text-primary-foreground shadow-lg shadow-primary/25 transition-all overflow-hidden group/btn ${
@@ -264,7 +266,7 @@ export function TextTransferModal({
                 } else {
                   handleCopy();
                 }
-                playSound("tap");
+                triggerHaptic("light");
               }}
               className="relative flex-[2] py-3.5 rounded-[var(--radius-lg)] font-bold text-sm text-primary-foreground bg-primary hover:brightness-110 shadow-lg shadow-primary/25 transition-all overflow-hidden group/btn"
             >
@@ -304,7 +306,7 @@ export function TextTransferModal({
                   }`}
                   onClick={() => {
                     setText(snippet.text);
-                    playSound("tap");
+                    triggerHaptic("light");
                   }}
                 >
                   <div className="flex items-start justify-between gap-3">

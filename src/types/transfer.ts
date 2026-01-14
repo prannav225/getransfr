@@ -19,9 +19,25 @@ export interface FileSystemHandle {
 export interface FileSystemFileHandle extends FileSystemHandle {
   kind: "file";
   getFile(): Promise<File>;
-  createWritable(): Promise<unknown>;
+  createWritable(options?: {
+    keepExistingData?: boolean;
+  }): Promise<FileSystemWritableFileStream>;
 }
 
 export interface FileSystemDirectoryHandle extends FileSystemHandle {
   kind: "directory";
+  getDirectoryHandle(
+    name: string,
+    options?: { create?: boolean }
+  ): Promise<FileSystemDirectoryHandle>;
+  getFileHandle(
+    name: string,
+    options?: { create?: boolean }
+  ): Promise<FileSystemFileHandle>;
+}
+
+export interface FileSystemWritableFileStream extends WritableStream {
+  write(data: Uint8Array | Blob | string): Promise<void>;
+  seek(position: number): Promise<void>;
+  truncate(size: number): Promise<void>;
 }

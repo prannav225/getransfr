@@ -1,17 +1,9 @@
-import {
-  Sun,
-  Moon,
-  Volume2,
-  VolumeX,
-  Sparkles,
-  Zap,
-  Monitor,
-} from "lucide-react";
+import { Sun, Moon, Sparkles, Zap, Monitor } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Device } from "@/types/device";
 import { useTheme, Theme } from "@/components/ThemeProvider";
-import { useSound } from "@/hooks/useSound";
+import { useHaptics } from "@/hooks/useHaptics";
 
 interface HeaderProps {
   currentDevice: Device | null;
@@ -19,7 +11,7 @@ interface HeaderProps {
 
 export function Header({ currentDevice }: HeaderProps) {
   const { theme, setTheme } = useTheme();
-  const { isMuted, setIsMuted, playSound } = useSound();
+  const { triggerHaptic } = useHaptics();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -29,16 +21,6 @@ export function Header({ currentDevice }: HeaderProps) {
   useEffect(() => {
     // Remove no-transitions class after initial render
     document.documentElement.classList.remove("no-transitions");
-  }, []);
-
-  useEffect(() => {
-    // Add transition class to html element for smooth theme changes
-    document.documentElement.classList.add("transition-colors");
-    document.documentElement.classList.add("duration-300");
-    return () => {
-      document.documentElement.classList.remove("transition-colors");
-      document.documentElement.classList.remove("duration-300");
-    };
   }, []);
 
   useEffect(() => {
@@ -69,17 +51,18 @@ export function Header({ currentDevice }: HeaderProps) {
 
   const Brand = (
     <div className="flex items-center gap-2.5 lg:gap-4 shrink-0">
-      <Link href="/">
-        <a className="flex items-center gap-2.5 lg:gap-4 hover:opacity-80 transition-opacity">
-          <img
-            src="/G.png"
-            alt="Getransfr"
-            className="w-8 h-8 lg:w-11 lg:h-11 drop-shadow-sm transition-all hover:scale-110"
-          />
-          <h1 className="text-lg lg:text-2xl text-brand bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            Getransfr
-          </h1>
-        </a>
+      <Link
+        href="/"
+        className="flex items-center gap-2.5 lg:gap-4 hover:opacity-80 transition-opacity"
+      >
+        <img
+          src="/G.png"
+          alt="Getransfr"
+          className="w-8 h-8 lg:w-11 lg:h-11 drop-shadow-sm transition-all hover:scale-110"
+        />
+        <h1 className="text-lg lg:text-2xl text-brand bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+          Getransfr
+        </h1>
       </Link>
     </div>
   );
@@ -95,7 +78,7 @@ export function Header({ currentDevice }: HeaderProps) {
           key={t.name}
           onClick={() => {
             setTheme(t.name as Theme);
-            playSound("tap");
+            triggerHaptic("light");
           }}
           className={`p-1.5 lg:p-2 rounded-full transition-all active:scale-90 ${
             theme === t.name
@@ -153,23 +136,6 @@ export function Header({ currentDevice }: HeaderProps) {
       </div>
     );
 
-  const SoundToggle = (
-    <button
-      onClick={() => {
-        setIsMuted(!isMuted);
-        playSound("tap", true);
-      }}
-      className="p-1.5 lg:p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-all text-muted-foreground hover:text-primary shrink-0 active:scale-90"
-      title={isMuted ? "Unmute" : "Mute"}
-    >
-      {isMuted ? (
-        <VolumeX className="w-4 h-4 lg:w-5 lg:h-5" />
-      ) : (
-        <Volume2 className="w-4 h-4 lg:w-5 lg:h-5" />
-      )}
-    </button>
-  );
-
   return (
     <div className="w-full max-w-6xl mx-auto px-2 lg:px-4 transition-all duration-300">
       {/* Mobile Layout: 2 Rows */}
@@ -179,10 +145,9 @@ export function Header({ currentDevice }: HeaderProps) {
           {Brand}
           {ThemeToggles(true)}
         </div>
-        {/* Row 2: Device & Sound */}
+        {/* Row 2: Device */}
         <div className="flex items-center justify-between px-1">
           {CurrentDeviceStatus(true)}
-          {SoundToggle}
         </div>
       </div>
 
@@ -199,7 +164,6 @@ export function Header({ currentDevice }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-1 lg:gap-2 pr-2 lg:pr-3 shrink-0">
-          {SoundToggle}
           {ThemeToggles(false)}
         </div>
       </div>

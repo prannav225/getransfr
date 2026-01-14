@@ -29,7 +29,7 @@ import { BottomNav } from "@/components/navigation/BottomNav";
 import { Link } from "wouter";
 import { useClipboard } from "@/hooks/useClipboard";
 import { TextTransferModal } from "@/components/modals/TextTransferModal";
-import { useSound } from "@/hooks/useSound";
+import { useHaptics } from "@/hooks/useHaptics";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { eventBus, EVENTS } from "@/utils/events";
 
@@ -85,14 +85,14 @@ export function Home() {
     cancelTransfer,
     setSelectedFiles,
   } = useFileTransfer();
-  const { playSound } = useSound();
+  const { triggerHaptic } = useHaptics();
   const {
     requestWakeLock: requestReceiverWakeLock,
     releaseWakeLock: releaseReceiverWakeLock,
   } = useWakeLock();
 
   const handleFileRemove = (index: number) => {
-    if ("vibrate" in navigator) navigator.vibrate(30);
+    triggerHaptic("medium");
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
     toast.success("File removed successfully");
   };
@@ -217,8 +217,7 @@ export function Home() {
         console.error("[Home] handleAccept is MISSING!", data);
       }
 
-      playSound("ding");
-      if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]); // Attention blip
+      triggerHaptic("success");
       setFileTransferRequest({
         files,
         handleAccept: handleAccept,
@@ -236,8 +235,7 @@ export function Home() {
       const sender = connectedDevicesRef.current.find(
         (d) => d.socketId === from
       );
-      playSound("ding");
-      if ("vibrate" in navigator) navigator.vibrate(60);
+      triggerHaptic("medium");
       setTextModal({
         isOpen: true,
         mode: "receive",
@@ -387,44 +385,44 @@ export function Home() {
               <FileTransferModal
                 files={fileTransferRequest.files}
                 onConfirm={async () => {
-                  const files = fileTransferRequest.files;
-                  let handle: FileSystemHandle | undefined = undefined;
+                  if (!fileTransferRequest) return;
 
-                  // Try to get File System Handle immediately within User Gesture
-                  if (
-                    "showSaveFilePicker" in window &&
-                    window.showSaveFilePicker
-                  ) {
-                    try {
-                      if (files.length === 1) {
-                        handle = await window.showSaveFilePicker({
-                          suggestedName: files[0].name,
-                        });
-                      } else if (
-                        files.length > 1 &&
-                        window.showDirectoryPicker
-                      ) {
-                        handle = await window.showDirectoryPicker();
-                      }
-                    } catch (err) {
-                      console.log(
-                        "[Home] File picker cancelled or failed:",
-                        err
-                      );
-                      // Proceed without handle (will fallback to memory/download)
+                  const { files, handleAccept } = fileTransferRequest;
+                  let handle: FileSystemHandle | undefined;
+
+                  try {
+                    // 1. Try modern Folder Picker (Chrome/Edge/Desktop)
+                    if (typeof window.showDirectoryPicker === "function") {
+                      const parent = await window.showDirectoryPicker({
+                        mode: "readwrite",
+                      });
+                      handle = await parent.getDirectoryHandle("Getransfr", {
+                        create: true,
+                      });
                     }
+                    // 2. Fallback to Save File Picker for single files
+                    else if (
+                      typeof window.showSaveFilePicker === "function" &&
+                      files.length === 1
+                    ) {
+                      handle = await window.showSaveFilePicker({
+                        suggestedName: files[0].name,
+                      });
+                    }
+                  } catch (err) {
+                    // User cancelled or browser blocked; handle remains undefined (fallback to blob)
+                    console.log(
+                      "[Home] File system access skipped, using fallback",
+                      err
+                    );
                   }
 
-                  if (typeof fileTransferRequest.handleAccept === "function") {
-                    fileTransferRequest.handleAccept(handle);
-                  }
+                  handleAccept?.(handle);
                   setFileTransferRequest(null);
                   toast.success("Transfer accepted");
                 }}
                 onCancel={() => {
-                  if (typeof fileTransferRequest.handleDecline === "function") {
-                    fileTransferRequest.handleDecline();
-                  }
+                  fileTransferRequest?.handleDecline?.();
                   setFileTransferRequest(null);
                   toast("Transfer declined");
                 }}
@@ -457,13 +455,6 @@ export function Home() {
           </div>
         )}
       </AnimatePresence>
-
-      <TransferProgress
-        progress={progress}
-        isSending={isSending}
-        isPreparing={isPreparing}
-        onCancel={cancelTransfer || undefined}
-      />
 
       {/* Main Layout Container */}
       <motion.div
@@ -555,6 +546,13 @@ export function Home() {
 
       {/* Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+
+      <TransferProgress
+        progress={progress}
+        isSending={isSending}
+        isPreparing={isPreparing}
+        onCancel={cancelTransfer || undefined}
+      />
     </div>
   );
 }

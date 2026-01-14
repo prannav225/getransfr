@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { X, Share2, ShieldCheck, HardDrive } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { FileTypeIcon } from '../files/FileTypeIcon';
-import { useSound } from '@/hooks/useSound';
+import { useEffect, useState } from "react";
+import { X, Share2, ShieldCheck, HardDrive } from "lucide-react";
+import { motion } from "framer-motion";
+import { FileTypeIcon } from "../files/FileTypeIcon";
+import { useHaptics } from "@/hooks/useHaptics";
 
 interface FileTransferModalProps {
   files: Array<{ name: string; size: number; type: string }>;
@@ -10,20 +10,24 @@ interface FileTransferModalProps {
   onCancel: () => void;
 }
 
-export function FileTransferModal({ files, onConfirm, onCancel }: FileTransferModalProps) {
-  const { playSound } = useSound();
-  const [totalSize, setTotalSize] = useState('0 B');
+export function FileTransferModal({
+  files,
+  onConfirm,
+  onCancel,
+}: FileTransferModalProps) {
+  const { triggerHaptic } = useHaptics();
+  const [totalSize, setTotalSize] = useState("0 B");
 
   useEffect(() => {
-    console.log('[FileTransferModal] Component mounted');
+    console.log("[FileTransferModal] Component mounted");
     const size = files.reduce((acc, file) => acc + file.size, 0);
     setTotalSize(formatSize(size));
   }, [files]);
 
   const formatSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
@@ -37,8 +41,8 @@ export function FileTransferModal({ files, onConfirm, onCancel }: FileTransferMo
         exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black/60 backdrop-blur-md"
         onClick={() => {
-            console.log('[FileTransferModal] Backdrop clicked');
-            onCancel();
+          console.log("[FileTransferModal] Backdrop clicked");
+          onCancel();
         }}
       />
 
@@ -57,11 +61,13 @@ export function FileTransferModal({ files, onConfirm, onCancel }: FileTransferMo
               <div className="p-2.5 rounded-[var(--radius-lg)] bg-primary/10 ring-1 ring-primary/20">
                 <Share2 className="w-5 h-5 text-primary" />
               </div>
-              <h3 className="text-[var(--text-xl)] font-bold tracking-tight">Incoming Transfer</h3>
+              <h3 className="text-[var(--text-xl)] font-bold tracking-tight">
+                Incoming Transfer
+              </h3>
             </div>
             <button
               onClick={() => {
-                console.log('[FileTransferModal] X button clicked');
+                console.log("[FileTransferModal] X button clicked");
                 onCancel();
               }}
               className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-muted-foreground transition-colors group"
@@ -69,9 +75,13 @@ export function FileTransferModal({ files, onConfirm, onCancel }: FileTransferMo
               <X className="w-5 h-5 group-hover:scale-110 transition-transform" />
             </button>
           </div>
-          
-          <p className="text-[var(--text-sm)] lg:text-[var(--text-base)] text-muted-foreground leading-relaxed">
-            Nearby device wants to share <span className="font-semibold text-foreground">{files.length} file{files.length > 1 ? 's' : ''}</span> with you.
+
+          <p className="text-muted-foreground text-sm lg:text-base leading-relaxed">
+            Nearby device wants to share{" "}
+            <span className="font-semibold text-foreground">
+              {files.length} file{files.length > 1 ? "s" : ""}
+            </span>{" "}
+            with you.
           </p>
         </div>
 
@@ -88,10 +98,15 @@ export function FileTransferModal({ files, onConfirm, onCancel }: FileTransferMo
                   className="flex items-center gap-3 p-3 rounded-[var(--radius-lg)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
                 >
                   <div className="p-2 rounded-[var(--radius-md)] bg-background shadow-sm border border-border/50 group-hover:scale-105 transition-transform flex-none">
-                    <FileTypeIcon mimeType={file.type} className="w-5 h-5 text-foreground" />
+                    <FileTypeIcon
+                      mimeType={file.type}
+                      className="w-5 h-5 text-foreground"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{file.name}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {file.name}
+                    </p>
                     <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground opacity-70">
                       {formatSize(file.size)}
                     </p>
@@ -99,14 +114,16 @@ export function FileTransferModal({ files, onConfirm, onCancel }: FileTransferMo
                 </motion.div>
               ))}
             </div>
-            
+
             {/* Summary Bar */}
             <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-t border-white/10">
               <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-primary/70">
                 <HardDrive className="w-3.5 h-3.5" />
                 Total Payload
               </div>
-              <span className="text-sm font-bold text-primary">{totalSize}</span>
+              <span className="text-sm font-bold text-primary">
+                {totalSize}
+              </span>
             </div>
           </div>
         </div>
@@ -125,9 +142,9 @@ export function FileTransferModal({ files, onConfirm, onCancel }: FileTransferMo
         <div className="p-6 lg:p-8 pt-6 flex gap-3">
           <button
             onClick={() => {
-              console.log('[FileTransferModal] Decline button clicked');
+              console.log("[FileTransferModal] Decline button clicked");
               onCancel();
-              playSound('tap');
+              triggerHaptic("light");
             }}
             className="flex-1 py-3.5 rounded-[var(--radius-lg)] font-bold text-sm text-foreground bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-white/10 shadow-sm transition-all active:scale-95"
           >
@@ -137,16 +154,21 @@ export function FileTransferModal({ files, onConfirm, onCancel }: FileTransferMo
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => {
-              console.log('[FileTransferModal] Accept button clicked');
+              console.log("[FileTransferModal] Accept button clicked");
               onConfirm();
-              playSound('tap');
+              triggerHaptic("light");
             }}
             className="relative flex-[2] py-3.5 rounded-[var(--radius-lg)] font-bold text-sm text-primary-foreground bg-primary hover:brightness-110 shadow-lg shadow-primary/25 transition-all overflow-hidden group/btn"
           >
-            <motion.div 
+            <motion.div
               animate={{ x: ["-100%", "200%"] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12" 
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+                repeatDelay: 1,
+              }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
             />
             <span className="relative z-10 flex items-center justify-center gap-2">
               Accept Transfer

@@ -1,18 +1,19 @@
-import { useState, useCallback } from 'react';
-import { Device } from '@/types/device';
-import rtcService from '@/services/rtcService';
-// import JSZip from 'jszip'; // Removed – batch queue sends files individually
-import { useSound } from './useSound';
-import { useWakeLock } from './useWakeLock';
+import { useState, useCallback } from "react";
+import { Device } from "@/types/device";
+import rtcService from "@/services/rtcService";
+import { useHaptics } from "./useHaptics";
+import { useWakeLock } from "./useWakeLock";
 
 export function useFileTransfer() {
-  const { playSound } = useSound();
+  const { triggerHaptic } = useHaptics();
   const { requestWakeLock, releaseWakeLock } = useWakeLock();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [cancelTransfer, setCancelTransfer] = useState<(() => void) | null>(null);
+  const [cancelTransfer, setCancelTransfer] = useState<(() => void) | null>(
+    null
+  );
 
   const validateFiles = (files: File[]): boolean => {
     return files.length > 0;
@@ -25,35 +26,31 @@ export function useFileTransfer() {
         return;
       }
       setSelectedFiles(files);
+      triggerHaptic("light");
     }
   };
 
-// Zip logic removed – files are sent individually as a batch queue.
+  // Zip logic removed – files are sent individually as a batch queue.
 
+  const startTransfer = useCallback(
+    async (target: Device, files: File[]) => {
+      if (files.length === 0 || isSending) {
+        return;
+      }
 
-  const startTransfer = useCallback(async (target: Device, files: File[]) => {
-    if (files.length === 0 || isSending) {
-      return;
-    }
+      const peerId = target.socketId;
 
-    const peerId = target.socketId;
+      setIsSending(true);
+      setProgress(0);
+      triggerHaptic("medium");
+      requestWakeLock();
 
-    setIsSending(true);
-    setProgress(0);
-    playSound('whoosh');
-    requestWakeLock();
-    if ('vibrate' in navigator) navigator.vibrate([10, 50, 10]);
-
-    try {
-      const cancel = await rtcService.sendFiles(
-        peerId,
-        files,
-        {
+      try {
+        const cancel = await rtcService.sendFiles(peerId, files, {
           onProgress: (p) => {
             setProgress(p);
             if (p === 100) {
-              playSound('ding');
-              if ('vibrate' in navigator) navigator.vibrate(50);
+              triggerHaptic("success");
               setTimeout(() => {
                 setIsSending(false);
                 setCancelTransfer(null);
@@ -65,15 +62,14 @@ export function useFileTransfer() {
                 // If files !== selectedFiles, maybe don't clear selectedFiles?
                 // Let's assume clear is fine for now or check equality.
                 if (files === selectedFiles) setSelectedFiles([]);
-                
+
                 releaseWakeLock();
               }, 2000);
             }
           },
           onComplete: () => {
             setProgress(100);
-            playSound('ding');
-            if ('vibrate' in navigator) navigator.vibrate(50);
+            triggerHaptic("success");
             setTimeout(() => {
               setIsSending(false);
               setCancelTransfer(null);
@@ -82,8 +78,8 @@ export function useFileTransfer() {
             }, 2000);
           },
           onError: (error) => {
-            console.error('Transfer error:', error);
-            playSound('error');
+            console.error("Transfer error:", error);
+            triggerHaptic("error");
             setIsSending(false);
             setProgress(0);
             setCancelTransfer(null);
@@ -95,23 +91,27 @@ export function useFileTransfer() {
             setProgress(0);
             setCancelTransfer(null);
             releaseWakeLock();
-          }
-        }
-      );
+          },
+        });
 
-      setCancelTransfer(() => cancel);
-    } catch (error) {
-      console.error('Failed to initialize transfer:', error);
-      setIsSending(false);
-      setProgress(0);
-      releaseWakeLock();
-      throw error;
-    }
-  }, [selectedFiles, isSending]);
+        setCancelTransfer(() => cancel);
+      } catch (error) {
+        console.error("Failed to initialize transfer:", error);
+        setIsSending(false);
+        setProgress(0);
+        releaseWakeLock();
+        throw error;
+      }
+    },
+    [selectedFiles, isSending, triggerHaptic, requestWakeLock, releaseWakeLock]
+  );
 
-  const handleSendFiles = useCallback(async (device: Device) => {
+  const handleSendFiles = useCallback(
+    async (device: Device) => {
       await startTransfer(device, selectedFiles);
-  }, [selectedFiles, startTransfer]);
+    },
+    [selectedFiles, startTransfer]
+  );
 
   return {
     selectedFiles,
@@ -122,6 +122,6 @@ export function useFileTransfer() {
     progress,
     cancelTransfer,
     setSelectedFiles,
-    startTransfer
+    startTransfer,
   };
 }

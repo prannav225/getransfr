@@ -1,20 +1,20 @@
-import { useState } from 'react';
-import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useSound } from '@/hooks/useSound';
+import { useState } from "react";
+import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useHaptics } from "@/hooks/useHaptics";
 
 interface BottomNavProps {
-  activeTab: 'send' | 'receive';
-  onTabChange: (tab: 'send' | 'receive') => void;
+  activeTab: "send" | "receive";
+  onTabChange: (tab: "send" | "receive") => void;
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
-  const { playSound } = useSound();
+  const { triggerHaptic } = useHaptics();
   const [clickedTab, setClickedTab] = useState<string | null>(null);
 
   const tabs = [
-    { id: 'send', label: 'Send', icon: ArrowUpRight },
-    { id: 'receive', label: 'Receive', icon: ArrowDownLeft }
+    { id: "send", label: "Send", icon: ArrowUpRight },
+    { id: "receive", label: "Receive", icon: ArrowDownLeft },
   ] as const;
 
   return (
@@ -30,7 +30,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               onClick={() => {
                 setClickedTab(tab.id);
                 onTabChange(tab.id);
-                playSound('tap');
+                triggerHaptic("light");
                 setTimeout(() => setClickedTab(null), 400);
               }}
               className="relative px-7 py-3 rounded-full flex items-center gap-2.5 outline-none group transform-gpu"
@@ -39,33 +39,43 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 <motion.div
                   layoutId="nav-pill"
                   className="absolute inset-0 bg-nav-active rounded-full"
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 600, 
+                  transition={{
+                    type: "spring",
+                    stiffness: 600,
                     damping: 30,
-                    mass: 0.8
+                    mass: 0.8,
                   }}
                 />
               )}
-              
+
               <div className="relative z-10 flex items-center gap-2.5">
                 <motion.div
-                  animate={{ 
+                  animate={{
                     scale: isActive ? 1.15 : 0.9,
-                    rotate: isActive ? (tab.id === 'send' ? 45 : -45) : 0,
-                    y: isActive ? -1 : 0
+                    rotate: isActive ? (tab.id === "send" ? 45 : -45) : 0,
+                    y: isActive ? -1 : 0,
                   }}
                   transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                  className={`${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}
+                  className={`${
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground group-hover:text-foreground"
+                  }`}
                 >
-                  <Icon className={`w-5 h-5 ${isActive ? 'stroke-[3]' : 'stroke-[2]'}`} />
+                  <Icon
+                    className={`w-5 h-5 ${
+                      isActive ? "stroke-[3]" : "stroke-[2]"
+                    }`}
+                  />
                 </motion.div>
 
-                <motion.span 
-                  animate={{ 
-                    color: isActive ? 'hsl(var(--primary))' : 'var(--muted-foreground)',
+                <motion.span
+                  animate={{
+                    color: isActive
+                      ? "hsl(var(--primary))"
+                      : "var(--muted-foreground)",
                     scale: isActive ? 1 : 0.95,
-                    opacity: isActive ? 1 : 0.8
+                    opacity: isActive ? 1 : 0.8,
                   }}
                   transition={{ duration: 0.2 }}
                   className="text-device-name text-sm sm:text-base selection:bg-transparent"
