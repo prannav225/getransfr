@@ -157,7 +157,11 @@ export function DeviceList({
                       {device.name}
                     </h3>
                     <div className="flex items-center gap-1.5 mt-1.5">
-                      {currentDevice?.ip === device.ip ? (
+                      {device.ip &&
+                      currentDevice?.ip &&
+                      device.ip !== "127.0.0.1" &&
+                      device.ip !== "::1" &&
+                      currentDevice.ip === device.ip ? (
                         <span className="px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-500 text-[10px] font-bold uppercase tracking-wider border border-green-500/20">
                           Local Wifi
                         </span>
