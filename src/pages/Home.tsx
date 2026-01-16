@@ -491,7 +491,26 @@ export function Home() {
                     animate="center"
                     exit="exit"
                     transition={slideTransition}
-                    className="w-full h-full transform-gpu overflow-x-hidden px-1"
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.05}
+                    onDragEnd={(_, info) => {
+                      const threshold = 100;
+                      if (
+                        info.offset.x < -threshold &&
+                        activeTab === "receive"
+                      ) {
+                        triggerHaptic("light");
+                        handleTabChange("send");
+                      } else if (
+                        info.offset.x > threshold &&
+                        activeTab === "send"
+                      ) {
+                        triggerHaptic("light");
+                        handleTabChange("receive");
+                      }
+                    }}
+                    className="w-full h-full transform-gpu overflow-x-hidden px-1 touch-pan-y"
                   >
                     {activeTab === "send" ? (
                       <SendView

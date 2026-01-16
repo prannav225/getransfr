@@ -1,5 +1,19 @@
 import { Socket } from "socket.io-client";
 
+// WebRTC Stats interfaces for type safety
+interface RTCTransportStats extends RTCStats {
+  selectedCandidatePairId: string;
+}
+
+interface RTCIceCandidatePairStats extends RTCStats {
+  localCandidateId: string;
+  remoteCandidateId: string;
+}
+
+interface RTCIceCandidateStats extends RTCStats {
+  candidateType: string;
+}
+
 class RTCConnectionManager {
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
   private socket: Socket;
@@ -91,30 +105,46 @@ class RTCConnectionManager {
 
     try {
       const stats = await pc.getStats();
-      let selectedPair: RTCStats | null = null;
+      let selectedPairId: string | null = null;
 
       stats.forEach((report) => {
-        if (report.type === "transport" && report.selectedCandidatePairId) {
-          selectedPair = stats.get(report.selectedCandidatePairId) || null;
+        if (
+          report.type === "transport" &&
+          "selectedCandidatePairId" in report
+        ) {
+          selectedPairId =
+            (report as RTCTransportStats).selectedCandidatePairId || null;
         }
       });
 
-      if (selectedPair) {
-        const localCandidate = stats.get(
-          (selectedPair as any).localCandidateId
-        );
-        const remoteCandidate = stats.get(
-          (selectedPair as any).remoteCandidateId
-        );
+      if (selectedPairId) {
+        const selectedPair = stats.get(selectedPairId);
+        if (selectedPair && "localCandidateId" in selectedPair) {
+          const pairStats = selectedPair as RTCIceCandidatePairStats;
+          const localCandidateId = pairStats.localCandidateId;
+          const remoteCandidateId = pairStats.remoteCandidateId;
 
-        const isRelay =
-          localCandidate?.candidateType === "relay" ||
-          remoteCandidate?.candidateType === "relay";
-        console.log(
-          `[RTC] Connection type for ${peerId}: ${isRelay ? "RELAY" : "DIRECT"}`
-        );
+          const localCandidate = localCandidateId
+            ? stats.get(localCandidateId)
+            : null;
+          const remoteCandidate = remoteCandidateId
+            ? stats.get(remoteCandidateId)
+            : null;
 
-        this.connectionTypes.set(peerId, isRelay ? "relay" : "direct");
+          const isRelay =
+            (localCandidate as RTCIceCandidateStats)?.candidateType ===
+              "relay" ||
+            (remoteCandidate as RTCIceCandidateStats)?.candidateType ===
+              "relay";
+
+          console.log(
+            `[RTC] Connection type for ${peerId}: ${
+              isRelay ? "RELAY" : "DIRECT"
+            }`
+          );
+
+          this.connectionTypes.set(peerId, isRelay ? "relay" : "direct");
+        }
       }
     } catch (err) {
       console.warn("[RTC] Failed to detect connection type:", err);

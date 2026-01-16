@@ -14,21 +14,20 @@ if (
   );
 }
 
-// Create a persistent device ID if not exists
-if (!localStorage.getItem("deviceId")) {
-  localStorage.setItem("deviceIdTimestamp", Date.now().toString());
-}
+const clientId = localStorage.getItem("deviceId");
+const deviceName = localStorage.getItem("deviceName");
 
 const socket = io(SOCKET_URL, {
-  transports: ["websocket", "polling"],
-  reconnectionAttempts: 10,
+  transports: ["polling", "websocket"], // Start with polling for better reliability behind proxies/Render
+  reconnectionAttempts: 15, // Slightly more attempts
   reconnectionDelay: 1000,
-  timeout: 20000,
+  reconnectionDelayMax: 5000,
+  timeout: 30000, // Increased timeout for waking up Render instances
   autoConnect: true,
   path: "/socket.io",
   query: {
-    clientId: localStorage.getItem("deviceId") || undefined,
-    deviceName: localStorage.getItem("deviceName") || undefined,
+    ...(clientId && clientId !== "undefined" && { clientId }),
+    ...(deviceName && deviceName !== "undefined" && { deviceName }),
   },
 }) as Socket;
 
@@ -80,11 +79,13 @@ socket.on("connect_error", (error) => {
 
 // Handle disconnection
 socket.on("disconnect", (reason) => {
-  console.log("Disconnected from signaling server:", reason);
+  console.log("Disconnected from signaling server. Reason:", reason);
 
-  if (reason === "io server disconnect" || reason === "transport close") {
+  // If the server explicitly disconnected us, we must manually reconnect.
+  // For other reasons (like transport loss), Socket.io handles it automatically.
+  if (reason === "io server disconnect") {
+    console.log("Server disconnected us, attempting manual reconnect in 2s...");
     setTimeout(() => {
-      console.log("Attempting to reconnect...");
       socket.connect();
     }, 2000);
   }
