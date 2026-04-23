@@ -151,33 +151,35 @@ export function Header({ currentDevice }: HeaderProps) {
     );
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-2 lg:px-4 transition-all duration-300">
-      {/* Mobile Layout: 2 Rows */}
-      <div className="flex sm:hidden flex-col gap-2 p-3 bg-glass-card border border-white/10 rounded-[var(--radius-xl)] backdrop-blur-2xl">
-        {/* Row 1: Logo & Theme */}
-        <div className="flex items-center justify-between px-1">
+    <div className="w-full transition-all duration-300">
+      {/* Mobile Layout: Compact Integrated Header */}
+      <div className="flex sm:hidden flex-col gap-2 px-4 py-1.5 bg-background/50">
+        <div className="flex items-center justify-between">
           {Brand}
-          {ThemeToggles(true)}
+          <div className="flex items-center gap-2">
+            {ThemeToggles(true)}
+          </div>
         </div>
-        {/* Row 2: Device */}
-        <div className="flex items-center justify-between px-1">
-          {CurrentDeviceStatus(true)}
-        </div>
+        {currentDevice && (
+          <div className="flex items-center justify-between pb-0.5">
+            {CurrentDeviceStatus(true)}
+          </div>
+        )}
       </div>
 
-      {/* Desktop Layout: 1 Row */}
-      <div className="hidden sm:flex items-center justify-between gap-3 lg:gap-4 p-1.5 lg:p-2 bg-glass-card border border-white/10 rounded-full backdrop-blur-2xl">
-        <div className="flex items-center gap-2 lg:gap-4 pl-2 lg:pl-3 min-w-0">
+      {/* Desktop Layout: Sleek Top Bar */}
+      <div className="hidden sm:flex items-center justify-between gap-4 p-4 lg:p-5 bg-transparent border-b border-border/10">
+        <div className="flex items-center gap-4 lg:gap-6 min-w-0">
           {Brand}
           {currentDevice && (
             <>
-              <div className="hidden sm:block w-px h-5 lg:h-6 bg-border/20 mx-1 lg:mx-2" />
+              <div className="hidden sm:block w-px h-6 bg-border/20 mx-2" />
               {CurrentDeviceStatus(false)}
             </>
           )}
         </div>
 
-        <div className="flex items-center gap-1 lg:gap-2 pr-2 lg:pr-3 shrink-0">
+        <div className="flex items-center gap-2 lg:gap-4 shrink-0">
           {ThemeToggles(false)}
         </div>
       </div>

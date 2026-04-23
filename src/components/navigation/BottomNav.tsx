@@ -18,8 +18,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ] as const;
 
   return (
-    <div className="fixed bottom-nav-safe left-1/2 -translate-x-1/2 z-50 w-auto">
-      <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-glass-card border border-white/10 relative overflow-hidden backdrop-blur-xl">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border/10 pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="flex items-stretch justify-center h-20 max-w-lg mx-auto px-6">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -33,74 +33,29 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 triggerHaptic("light");
                 setTimeout(() => setClickedTab(null), 400);
               }}
-              className="relative px-7 py-3 rounded-full flex items-center gap-2.5 outline-none group transform-gpu"
+              className="flex-1 relative flex flex-col items-center justify-center gap-1.5 outline-none group transform-gpu"
             >
-              {isActive && (
-                <motion.div
-                  layoutId="nav-pill"
-                  className="absolute inset-0 bg-nav-active rounded-full"
-                  transition={{
-                    type: "spring",
-                    stiffness: 600,
-                    damping: 30,
-                    mass: 0.8,
-                  }}
+              <div
+                className={`flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 ${
+                  isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"
+                }`}
+              >
+                <Icon
+                  className={`w-6 h-6 ${isActive ? "stroke-[2.5]" : "stroke-[1.5]"}`}
                 />
-              )}
-
-              <div className="relative z-10 flex items-center gap-2.5">
-                <motion.div
-                  animate={{
-                    scale: isActive ? 1.15 : 0.9,
-                    rotate: isActive ? (tab.id === "send" ? 45 : -45) : 0,
-                    y: isActive ? -1 : 0,
-                  }}
-                  transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                  className={`${
-                    isActive
-                      ? "text-primary"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  }`}
-                >
-                  <Icon
-                    className={`w-5 h-5 ${
-                      isActive ? "stroke-[3]" : "stroke-[2]"
-                    }`}
-                  />
-                </motion.div>
-
-                <motion.span
-                  animate={{
-                    color: isActive
-                      ? "hsl(var(--primary))"
-                      : "var(--muted-foreground)",
-                    scale: isActive ? 1 : 0.95,
-                    opacity: isActive ? 1 : 0.8,
-                  }}
-                  transition={{ duration: 0.2 }}
-                  className="text-device-name text-sm sm:text-base selection:bg-transparent"
-                >
-                  {tab.label}
-                </motion.span>
               </div>
+              <span
+                className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300 ${
+                  isActive ? "text-primary" : "text-muted-foreground/50"
+                }`}
+              >
+                {tab.label}
+              </span>
 
-              {/* Click Ripple Effect */}
-              <AnimatePresence>
-                {clickedTab === tab.id && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0.5 }}
-                    animate={{ scale: 2.5, opacity: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="absolute inset-0 rounded-full bg-white/20 z-0 pointer-events-none"
-                  />
-                )}
-              </AnimatePresence>
-
-              {/* Tap Feedback */}
+              {/* Tap Feedback Layer */}
               <motion.div
-                whileTap={{ scale: 0.92 }}
-                className="absolute inset-0 rounded-full"
+                whileTap={{ scale: 0.95 }}
+                className="absolute inset-0 z-0"
               />
             </button>
           );

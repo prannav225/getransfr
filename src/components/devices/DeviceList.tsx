@@ -59,18 +59,15 @@ export function DeviceList({
   };
 
   return (
-    <div className="relative bg-glass-card rounded-[2.5rem] p-4 lg:p-6 transition-all duration-300 h-full flex flex-col group/card overflow-hidden">
-      {/* Background Decorative Element */}
-      <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 relative z-10 px-2 lg:px-4">
+    <div className="relative p-5 lg:p-8 h-full flex flex-col group/card bg-card/10 min-h-[320px]">
+      {/* Header - Stays Fixed at Top of Section */}
+      <div className="flex items-center justify-between mb-6 relative z-10 px-1 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-2xl bg-primary/10 ring-1 ring-primary/20">
+          <div className="p-2 rounded-xl bg-primary/10">
             <Radio className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight font-outfit">
+            <h2 className="text-lg font-bold tracking-tight font-outfit uppercase">
               Nearby Devices
             </h2>
             <div className="flex items-center gap-1.5 opacity-60">
@@ -86,29 +83,29 @@ export function DeviceList({
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 min-h-0 flex flex-col relative z-10">
+      {/* Main Content - Scrollable Area */}
+      <div className="flex-1 min-h-0 relative z-10 overflow-hidden flex flex-col">
         <AnimatePresence mode="wait">
           {uniqueDevices.length === 0 ? (
             <motion.div
               key="empty"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="flex-1 flex flex-col items-center justify-center text-center py-16 lg:py-20"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col items-center justify-center text-center py-10 lg:py-16"
             >
-              <div className="relative mb-12">
-                {/* Sonar Pulse - High Fidelity Waves (matching ReceiveView) */}
+              {/* ... empty state content ... */}
+              <div className="relative mb-10">
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  {[1, 2, 3, 4].map((i) => (
+                  {[1, 2, 3].map((i) => (
                     <motion.div
                       key={i}
-                      className="absolute rounded-full border border-primary/20 bg-primary/2"
-                      initial={{ width: "80px", height: "80px", opacity: 0 }}
+                      className="absolute rounded-full border border-primary/10 bg-primary/2"
+                      initial={{ width: "60px", height: "60px", opacity: 0 }}
                       animate={{
-                        width: ["80px", "320px"],
-                        height: ["80px", "320px"],
-                        opacity: [0, 0.4, 0],
+                        width: ["60px", "280px"],
+                        height: ["60px", "280px"],
+                        opacity: [0, 0.3, 0],
                         scale: [1, 1.1],
                       }}
                       transition={{
@@ -120,15 +117,15 @@ export function DeviceList({
                     />
                   ))}
                 </div>
-                <div className="relative z-10 bg-white/5 dark:bg-white/5 p-8 rounded-[2rem] backdrop-blur-md border border-border/50 shadow-inner flex flex-col items-center [transform:translateZ(0)]">
-                  <Users className="w-12 h-12 text-primary/30 animate-pulse" />
+                <div className="relative z-10 bg-muted/30 p-8 rounded-full border border-border/5 flex flex-col items-center">
+                  <Users className="w-10 h-10 text-primary/20" />
                 </div>
               </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-foreground font-outfit">
-                Looking for nearby devices
+              <h3 className="text-lg font-bold text-foreground font-outfit">
+                Looking for devices...
               </h3>
-              <p className="text-sm text-muted-foreground mt-3 max-w-[240px] mx-auto leading-relaxed font-medium font-inter">
-                Make sure the other device is on the Receive screen.
+              <p className="text-[10px] text-muted-foreground/40 mt-2 max-w-[200px] mx-auto font-black uppercase tracking-widest leading-relaxed">
+                Ensure others are on the Receive screen
               </p>
             </motion.div>
           ) : (
@@ -136,7 +133,7 @@ export function DeviceList({
               key="list"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="space-y-3 pr-1 overflow-y-auto custom-scrollbar overflow-x-hidden"
+              className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1 pb-10"
             >
               {uniqueDevices.map((device, idx) => (
                 <motion.div
@@ -144,17 +141,15 @@ export function DeviceList({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="group relative p-3 rounded-[1.5rem] border transition-all duration-300 flex items-center gap-4 bg-black/5 dark:bg-white/5 border-border/50 hover:bg-black/10 dark:hover:bg-white/10 hover:border-border shadow-sm active:scale-[0.98]"
+                  className="group relative p-3 rounded-xl border border-border/5 bg-background hover:bg-muted/30 transition-all duration-200 flex items-center gap-4"
                 >
                   <div className="relative flex-none">
-                    <div className="relative">
-                      <img
-                        src={device.avatar}
-                        alt={device.name}
-                        className="w-12 h-12 rounded-2xl ring-1 ring-primary/20 shadow-md object-cover transform transition-transform group-hover:scale-105"
-                      />
-                      <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background shadow-sm" />
-                    </div>
+                    <img
+                      src={device.avatar}
+                      alt={device.name}
+                      className="w-12 h-12 rounded-xl ring-1 ring-primary/10 object-cover"
+                    />
+                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -162,25 +157,9 @@ export function DeviceList({
                       {device.name}
                     </h3>
                     <div className="flex items-center gap-1.5">
-                      {device.ip &&
-                      currentDevice?.ip &&
-                      device.ip !== "127.0.0.1" &&
-                      device.ip !== "::1" &&
-                      currentDevice.ip === device.ip ? (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20">
-                          <Wifi className="w-2.5 h-2.5" />
-                          <span className="text-[9px] font-bold uppercase tracking-wider">
-                            Local Wifi
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                          <Globe className="w-2.5 h-2.5" />
-                          <span className="text-[9px] font-bold uppercase tracking-wider">
-                            Remote
-                          </span>
-                        </div>
-                      )}
+                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
+                        Ready to connect
+                      </span>
                     </div>
                   </div>
 
@@ -188,11 +167,9 @@ export function DeviceList({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if ("vibrate" in navigator) navigator.vibrate(10);
                         onClipboardClick(device.socketId);
                       }}
-                      className="w-10 h-10 flex items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all active:scale-90"
-                      title="Share Text"
+                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all"
                     >
                       <ClipboardIcon className="w-4 h-4" />
                     </button>
@@ -203,10 +180,9 @@ export function DeviceList({
                         handleDeviceClick(device);
                       }}
                       disabled={selectedFiles.length === 0 || isSending}
-                      className="flex items-center justify-center w-12 h-12 bg-primary text-primary-foreground rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 disabled:grayscale disabled:opacity-30 disabled:hover:scale-100 transition-all relative overflow-hidden group/btn"
+                      className="w-12 h-12 bg-primary text-primary-foreground rounded-xl shadow-lg shadow-primary/10 hover:scale-105 active:scale-95 disabled:grayscale disabled:opacity-20 transition-all flex items-center justify-center"
                     >
-                      <Send className="w-5 h-5 relative z-10 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
-                      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700" />
+                      <Send className="w-5 h-5" />
                     </button>
                   </div>
                 </motion.div>
@@ -216,10 +192,10 @@ export function DeviceList({
         </AnimatePresence>
       </div>
 
-      {/* Device Info Badge */}
+      {/* Info Badge - Tucked at the bottom of the list area */}
       {uniqueDevices.length > 0 && (
-        <div className="mt-auto pt-6 flex items-center justify-center">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10 opacity-70 hover:opacity-100 transition-opacity duration-300">
+        <div className="shrink-0 pt-4 flex items-center justify-center border-t border-border/5 mt-2">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10 opacity-70">
             <div className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary/60"></span>

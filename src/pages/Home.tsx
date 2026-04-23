@@ -395,9 +395,26 @@ export function Home() {
                       const parent = await window.showDirectoryPicker({
                         mode: "readwrite",
                       });
-                      handle = await parent.getDirectoryHandle("Getransfr", {
-                        create: true,
-                      });
+
+                      // Avoid creating Getransfr/Getransfr
+                      if (parent.name === "Getransfr") {
+                        handle = parent;
+                      } else {
+                        try {
+                          // Try to get or create the Getransfr subfolder
+                          handle = await parent.getDirectoryHandle("Getransfr", {
+                            create: true,
+                          });
+                        } catch (subFolderErr) {
+                          // If the device/browser denies creating a subfolder,
+                          // fallback to saving directly in the folder the user just selected.
+                          console.warn(
+                            "[Home] Could not create/access Getransfr subfolder, using selected folder directly:",
+                            subFolderErr
+                          );
+                          handle = parent;
+                        }
+                      }
                     }
                     // 2. Fallback to Save File Picker for single files
                     else if (
@@ -457,30 +474,30 @@ export function Home() {
 
       {/* Main Layout Container */}
       <motion.div
-        className="container mx-auto max-w-7xl relative z-10 h-full px-4 sm:px-8 lg:px-12"
+        className="relative z-10 h-full w-full flex flex-col bg-background"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Header - Fixed/Absolute Glass Layer */}
+        {/* Header - Fixed/Absolute Layer */}
         <motion.div
           variants={itemVariants}
-          className="absolute top-0 left-0 right-0 z-40 p-4 sm:p-6 pt-[max(0.75rem,env(safe-area-inset-top))] pointer-events-none"
+          className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/10 p-0 sm:p-0 pt-[env(safe-area-inset-top)] flex items-center justify-center"
         >
-          <div className="pointer-events-auto">
+          <div className="w-full">
             <Header currentDevice={currentDevice} />
           </div>
         </motion.div>
 
         {/* Scrollable Content Layer - Full Height */}
-        <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-background">
           {/* Content Wrapper with Space for Header */}
-          <div className="min-h-full flex flex-col p-4 sm:p-6 lg:p-8 pt-[8.5rem] lg:pt-40 pb-32">
+          <div className="min-h-full flex flex-col px-0 sm:px-8 lg:px-12 pt-20 lg:pt-32 pb-40 w-full max-w-7xl mx-auto">
             {/* View Container - Responsive Cross-Fade */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative w-full">
               <Suspense
                 fallback={
-                  <div className="w-full h-48 bg-white/5 rounded-[var(--radius-xl)] animate-pulse" />
+                  <div className="w-full h-48 bg-card/50 rounded-2xl animate-pulse" />
                 }
               >
                 <AnimatePresence mode="wait">
@@ -491,26 +508,7 @@ export function Home() {
                     animate="center"
                     exit="exit"
                     transition={slideTransition}
-                    drag="x"
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={0.05}
-                    onDragEnd={(_, info) => {
-                      const threshold = 100;
-                      if (
-                        info.offset.x < -threshold &&
-                        activeTab === "receive"
-                      ) {
-                        triggerHaptic("light");
-                        handleTabChange("send");
-                      } else if (
-                        info.offset.x > threshold &&
-                        activeTab === "send"
-                      ) {
-                        triggerHaptic("light");
-                        handleTabChange("receive");
-                      }
-                    }}
-                    className="w-full h-full transform-gpu overflow-x-hidden px-1 touch-pan-y"
+                    className="w-full h-full transform-gpu overflow-x-hidden touch-pan-y"
                   >
                     {activeTab === "send" ? (
                       <SendView
@@ -537,7 +535,7 @@ export function Home() {
             </div>
 
             {/* Footer */}
-            <div className="py-8 text-center space-y-2 relative z-0 flex-none">
+            <div className="py-8 text-center space-y-2 relative z-0 flex-none px-4">
               <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/60">
                 Designed for Speed. Built with privacy in mind.
               </p>
@@ -560,9 +558,6 @@ export function Home() {
                 </Link>
               </div>
             </div>
-
-            {/* Scroll Spacer for Bottom Nav */}
-            <div className="h-16 sm:h-24 flex-none" />
           </div>
         </div>
       </motion.div>

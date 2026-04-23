@@ -9,63 +9,59 @@
 }
 
 @layer utilities {
-  .shadow-inner-light {
-    box-shadow: inset 0 2px 4px 0 rgba(255, 255, 255, 0.05);
-  }
-  .shadow-inner-dark {
-    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+  .shadow-subtle {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
   }
   .ease-spring-standard {
     transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 }
 
-.bg-glass-card {
-  background-color: hsl(var(--card) / var(--card-opacity, 0.4));
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid hsl(var(--border) / var(--border-opacity, 1));
-  position: relative;
-  /* Fix for rectangular rendering artifacts on Macs/Safari */
+.surface {
+  @apply bg-card border border-slate-200 dark:border-border/10 relative overflow-hidden;
   isolation: isolate;
-  -webkit-mask-image: -webkit-radial-gradient(white, black);
-  mask-image: radial-gradient(white, black);
 }
 
-/* Decoupled shadow layer to prevent backdrop-filter artifacts */
-.bg-glass-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  box-shadow: var(--card-shadow);
-  pointer-events: none;
-  transform: translateZ(0);
+.surface-muted {
+  @apply bg-muted/50 border border-slate-100 dark:border-border/5 relative overflow-hidden;
 }
 
-/* Glass Edge Refinement */
+.surface-accent {
+  @apply bg-primary/5 border border-primary/20 relative overflow-hidden;
+}
+
+/* Explicit Light Mode Border Overrides */
+:root:not(.dark) .bg-glass-card {
+  border: 1px solid #e2e8f0 !important; /* slate-200 */
+}
+
+:root:not(.dark) .border-border\/10 {
+  border-color: #e2e8f0 !important;
+}
+
+:root:not(.dark) .border-t {
+  border-top-color: #e2e8f0 !important;
+}
+
+:root:not(.dark) .border-b {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+:root:not(.dark) .sm\:border {
+  border-color: #e2e8f0 !important;
+}
+
+.bg-glass-card {
+  @apply surface;
+}
+
+/* Glass Edge Refinement - Kept for backward compatibility but simplified */
 .bg-glass-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    var(--glass-edge-top),
-    transparent 50%,
-    var(--glass-edge-bottom)
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  display: none;
 }
 
 .bg-glass-card-hover {
-  @apply hover:bg-[hsl(var(--card)/0.8)] transition-all duration-300;
+  @apply hover:bg-muted/10 transition-all duration-300;
 }
 
 /* Hide scrollbar by default for a cleaner app feel */
@@ -85,39 +81,39 @@
     color-scheme: var(--color-scheme);
 
     /* Soft White Base */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 10%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 12%;
-    --card-opacity: 0.4;
+    --card-foreground: 222 47% 11%;
+    --card-opacity: 1;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 12%;
+    --popover-foreground: 222 47% 11%;
 
     --primary: 247 90% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 15%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11.2%;
 
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 247 90% 60%;
-    --accent-foreground: 0 0% 12%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11.2%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 247 12% 86%;
-    --input: 247 12% 86%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
     --ring: 247 90% 60%;
-    --border-opacity: 2;
+    --border-opacity: 1;
 
     /* Glass Physics - Light */
-    --glass-highlight: rgba(255, 255, 255, 0.3);
-    --glass-edge-top: rgba(255, 255, 255, 0.5);
+    --glass-highlight: rgba(255, 255, 255, 1);
+    --glass-edge-top: rgba(0, 0, 0, 0.08);
     --glass-edge-bottom: transparent;
 
     --radius-sm: 0.5rem;

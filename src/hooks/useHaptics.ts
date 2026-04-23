@@ -34,7 +34,7 @@ export function useHaptics() {
           break;
       }
     } catch (e) {
-      // Ignore vibration errors on non-supported hardware
+      console.log(e);
     }
   }, []);
 
