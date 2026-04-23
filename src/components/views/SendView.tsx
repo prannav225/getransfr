@@ -89,10 +89,10 @@ export function SendView({
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex-1 flex flex-col"
+            className="flex-1 flex flex-col pt-1"
           >
             {hasFiles && (
-              <div className="px-4 py-2 bg-primary/5 flex items-center justify-between border-b border-slate-200 dark:border-border/10">
+              <div className="px-4 py-2 bg-primary/5 flex items-center justify-between border-b border-slate-200 dark:border-border/10 mt-1">
                 <button
                   onClick={() => setForceShowPicker(false)}
                   className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest"

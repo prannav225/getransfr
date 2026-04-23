@@ -482,7 +482,7 @@ export function Home() {
         {/* Header - Fixed/Absolute Layer */}
         <motion.div
           variants={itemVariants}
-          className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border/10 p-0 sm:p-0 pt-[env(safe-area-inset-top)] flex items-center justify-center"
+          className="fixed top-0 left-0 right-0 z-40 bg-background sm:bg-background/80 backdrop-blur-lg border-b border-border/10 p-0 sm:p-0 pt-[env(safe-area-inset-top)] flex items-center justify-center"
         >
           <div className="w-full">
             <Header currentDevice={currentDevice} />
@@ -492,7 +492,7 @@ export function Home() {
         {/* Scrollable Content Layer - Full Height */}
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-background">
           {/* Content Wrapper with Space for Header */}
-          <div className="min-h-full flex flex-col px-0 sm:px-8 lg:px-12 pt-20 lg:pt-32 pb-40 w-full max-w-7xl mx-auto">
+          <div className="min-h-full flex flex-col px-0 sm:px-8 lg:px-12 pt-32 lg:pt-40 pb-40 w-full max-w-7xl mx-auto">
             {/* View Container - Responsive Cross-Fade */}
             <div className="flex-1 relative w-full">
               <Suspense
