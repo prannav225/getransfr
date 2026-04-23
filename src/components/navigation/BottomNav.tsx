@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useHaptics } from "@/hooks/useHaptics";
 
 interface BottomNavProps {
@@ -10,7 +9,6 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const { triggerHaptic } = useHaptics();
-  const [clickedTab, setClickedTab] = useState<string | null>(null);
 
   const tabs = [
     { id: "receive", label: "Receive", icon: ArrowDownLeft },
@@ -28,10 +26,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             <button
               key={tab.id}
               onClick={() => {
-                setClickedTab(tab.id);
                 onTabChange(tab.id);
                 triggerHaptic("light");
-                setTimeout(() => setClickedTab(null), 400);
               }}
               className="flex-1 relative flex flex-col items-center justify-center gap-1.5 outline-none group transform-gpu"
             >

@@ -2,8 +2,6 @@ import {
   Users,
   Clipboard as ClipboardIcon,
   Send,
-  Wifi,
-  Globe,
   Radio,
 } from "lucide-react";
 import { Device } from "@/types/device";

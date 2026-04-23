@@ -53,7 +53,6 @@ export function FileUpload({
   };
 
   const handleDrop = async (e: React.DragEvent) => {
-    // ... traverse logic ...
     e.preventDefault();
     setIsDragging(false);
 
