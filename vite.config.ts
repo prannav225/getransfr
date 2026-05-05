@@ -14,7 +14,6 @@ export default defineConfig({
       includeAssets: [
         "favicon.ico",
         "apple-touch-icon.png",
-        "G.png",
         "getransfr-logo.png",
       ],
       manifest: {

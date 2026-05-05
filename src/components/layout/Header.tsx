@@ -63,7 +63,7 @@ export function Header({ currentDevice }: HeaderProps) {
         className="flex items-center gap-2.5 lg:gap-4 hover:opacity-80 transition-opacity"
       >
         <img
-          src="/G.png"
+          src="/getransfr-logo.png"
           alt="Getransfr"
           className="w-8 h-8 lg:w-11 lg:h-11 drop-shadow-sm transition-all hover:scale-110"
         />

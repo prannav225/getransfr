@@ -38,7 +38,7 @@ export function useClipboard() {
       if (Notification.permission === 'granted') {
           new Notification('New Shared Text', {
               body: text.length > 50 ? text.substring(0, 47) + '...' : text,
-              icon: '/G.png'
+              icon: '/getransfr-logo.png'
           });
       }
     });

@@ -267,7 +267,7 @@ export function Home() {
       if (Notification.permission === "granted") {
         new Notification("Transfer Complete", {
           body: "Files have been transferred successfully.",
-          icon: "/G.png",
+          icon: "/getransfr-logo.png",
         });
       }
     };
