@@ -49,7 +49,7 @@ declare global {
 }
 
 export function Home() {
-  const { currentDevice, connectedDevices } = useDevices();
+  const { currentDevice, connectedDevices, updateDeviceName, randomizeAvatar } = useDevices();
   const connectedDevicesRef = useRef(connectedDevices);
   useEffect(() => {
     connectedDevicesRef.current = connectedDevices;
@@ -173,6 +173,8 @@ export function Home() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         currentDevice={currentDevice}
+        onUpdateDeviceName={updateDeviceName}
+        onRandomizeAvatar={randomizeAvatar}
       />
 
       <TransferHistoryModal

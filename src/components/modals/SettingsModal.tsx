@@ -60,21 +60,19 @@ export function SettingsModal({
               Your Device Identity
             </h3>
             <div className="p-4 rounded-2xl bg-secondary/60 border border-border/30 flex items-center gap-4">
-              <div className="relative shrink-0">
+              <div className="relative shrink-0 group">
                 <img
                   src={avatarUrl}
                   alt={deviceName}
                   className="w-14 h-14 rounded-2xl object-cover bg-card border border-border/40"
                 />
-                {onRandomizeAvatar && (
-                  <button
-                    onClick={onRandomizeAvatar}
-                    className="absolute -bottom-1 -right-1 p-1 rounded-full bg-primary text-primary-foreground shadow-sm hover:scale-110 active:scale-95 transition-all"
-                    title="Randomize Avatar"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                  </button>
-                )}
+                <button
+                  onClick={onRandomizeAvatar}
+                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground shadow-md hover:scale-110 active:scale-95 transition-all"
+                  title="Change Avatar"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
               </div>
 
               <div className="flex-1 min-w-0">

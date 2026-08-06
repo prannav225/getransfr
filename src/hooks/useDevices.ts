@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { socket } from "@/services/socket";
 import { generateAvatar } from "@/services/avatar";
 import { Device } from "@/types/device";
@@ -7,31 +7,68 @@ export function useDevices() {
   const [currentDevice, setCurrentDevice] = useState<Device | null>(() => {
     const savedId = localStorage.getItem("deviceId");
     const savedName = localStorage.getItem("deviceName");
+    const savedSeed = localStorage.getItem("avatarSeed");
 
     if (savedId && savedName) {
+      const seed = savedSeed || savedName;
       return {
         id: savedId,
         name: savedName,
         socketId: "",
-        avatar: generateAvatar(savedName),
+        avatar: generateAvatar(seed),
       };
     }
     return null;
   });
+
   const [connectedDevices, setConnectedDevices] = useState<Device[]>([]);
+
+  const updateDeviceName = useCallback((newName: string) => {
+    if (!newName.trim()) return;
+    const cleanName = newName.trim();
+    localStorage.setItem("deviceName", cleanName);
+    const savedSeed = localStorage.getItem("avatarSeed") || cleanName;
+
+    const updated = {
+      id: currentDevice?.id || localStorage.getItem("deviceId") || "",
+      name: cleanName,
+      socketId: currentDevice?.socketId || "",
+      avatar: generateAvatar(savedSeed),
+    };
+
+    setCurrentDevice(updated);
+    if (socket.connected) {
+      socket.emit("updateDeviceName", cleanName);
+    }
+  }, [currentDevice]);
+
+  const randomizeAvatar = useCallback(() => {
+    const randomSeed = Math.random().toString(36).substring(2, 10);
+    localStorage.setItem("avatarSeed", randomSeed);
+
+    const deviceName = currentDevice?.name || localStorage.getItem("deviceName") || "Titanium Eclipse";
+
+    const updated = {
+      id: currentDevice?.id || localStorage.getItem("deviceId") || "",
+      name: deviceName,
+      socketId: currentDevice?.socketId || "",
+      avatar: generateAvatar(randomSeed),
+    };
+
+    setCurrentDevice(updated);
+    if (socket.connected) {
+      socket.emit("updateAvatarSeed", randomSeed);
+    }
+  }, [currentDevice]);
 
   useEffect(() => {
     const handleDeviceInfo = (device: Device) => {
-      console.log("Received device info:", device);
+      if (!device || !device.id) return;
 
-      if (!device || !device.id) {
-        console.error("Invalid device info received");
-        return;
-      }
-
+      const savedSeed = localStorage.getItem("avatarSeed") || device.name;
       const deviceWithAvatar = {
         ...device,
-        avatar: generateAvatar(device.name),
+        avatar: generateAvatar(savedSeed),
       };
 
       setCurrentDevice(deviceWithAvatar);
@@ -40,19 +77,12 @@ export function useDevices() {
     };
 
     const handleConnectedDevices = (devices: Device[]) => {
-      console.log("Received connected devices:", devices);
+      if (!Array.isArray(devices)) return;
 
-      if (!Array.isArray(devices)) {
-        console.error("Invalid devices data received");
-        return;
-      }
-
-      // Filter out invalid devices but keep the "self" check for the component to handle
       const validDevices = devices.filter(
         (device) => device && device.id && device.socketId
       );
 
-      // Add avatars to devices
       const devicesWithAvatars = validDevices.map((device) => ({
         ...device,
         avatar: generateAvatar(device.name),
@@ -62,21 +92,17 @@ export function useDevices() {
     };
 
     const handleDeviceDisconnected = (deviceId: string) => {
-      console.log("Device disconnected:", deviceId);
       setConnectedDevices((prev) =>
         prev.filter((device) => device.id !== deviceId)
       );
     };
 
-    // Register event handlers
     socket.on("deviceInfo", handleDeviceInfo);
     socket.on("connectedDevices", handleConnectedDevices);
     socket.on("deviceDisconnected", handleDeviceDisconnected);
 
-    // Request initial device list
     socket.emit("requestDevices");
 
-    // Periodically request device list to ensure it's up to date
     const interval = setInterval(() => {
       if (socket.connected) {
         socket.emit("requestDevices");
@@ -84,13 +110,17 @@ export function useDevices() {
     }, 10000);
 
     return () => {
-      // Clean up event handlers
       socket.off("deviceInfo", handleDeviceInfo);
       socket.off("connectedDevices", handleConnectedDevices);
       socket.off("deviceDisconnected", handleDeviceDisconnected);
       clearInterval(interval);
     };
-  }, [currentDevice?.id]);
+  }, []);
 
-  return { currentDevice, connectedDevices };
+  return {
+    currentDevice,
+    connectedDevices,
+    updateDeviceName,
+    randomizeAvatar,
+  };
 }
