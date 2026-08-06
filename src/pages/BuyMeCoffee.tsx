@@ -1,13 +1,13 @@
 import { Header } from "@/components/layout/Header";
 import { Link } from "wouter";
-import { ArrowLeft, Coffee, QrCode, Copy, Check, Github, ExternalLink } from "lucide-react";
+import { ArrowLeft, Coffee, QrCode, Copy, Check, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 
 export function BuyMeCoffee() {
   const [copiedUpi, setCopiedUpi] = useState(false);
-  const upiId = "pra9v@fam";
+  const upiId = "pr9n9v@axisbank";
 
   const handleCopyUPI = () => {
     navigator.clipboard.writeText(upiId);
@@ -124,33 +124,6 @@ export function BuyMeCoffee() {
                 )}
               </button>
             </motion.div>
-
-            {/* Option 3: GitHub Open Source */}
-            <motion.a
-              href="https://github.com/prannav225/getransfr"
-              target="_blank"
-              rel="noopener noreferrer"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="p-6 rounded-2xl bg-card border border-border/40 hover:border-border/70 transition-all shadow-sm flex items-center justify-between gap-4 group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3.5 rounded-2xl bg-secondary text-foreground border border-border/30">
-                  <Github className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold text-foreground">
-                    Star on GitHub
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Contribute code or star the official repository.
-                  </p>
-                </div>
-              </div>
-
-              <ExternalLink className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </motion.a>
           </div>
         </div>
       </div>

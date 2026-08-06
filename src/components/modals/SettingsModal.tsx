@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Shield, Coffee, Copy, Check, RefreshCw, Smartphone } from "lucide-react";
+import { X, Shield, Coffee, RefreshCw, Smartphone } from "lucide-react";
 import { Device } from "@/types/device";
 import toast from "react-hot-toast";
 import { Link } from "wouter";
@@ -19,7 +19,6 @@ export function SettingsModal({
   onUpdateDeviceName,
   onRandomizeAvatar,
 }: SettingsModalProps) {
-  const [copiedUpi, setCopiedUpi] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(currentDevice?.name || "Titanium Eclipse");
 
@@ -30,13 +29,6 @@ export function SettingsModal({
   const avatarUrl =
     currentDevice?.avatar ||
     `https://api.dicebear.com/7.x/bottts/svg?seed=${deviceName}`;
-
-  const handleCopyUpi = () => {
-    navigator.clipboard.writeText("pra9v@fam");
-    setCopiedUpi(true);
-    toast.success("UPI ID copied to clipboard!");
-    setTimeout(() => setCopiedUpi(false), 2000);
-  };
 
   const handleSaveName = () => {
     if (nameInput.trim() && onUpdateDeviceName) {
@@ -161,30 +153,6 @@ export function SettingsModal({
                   <span className="text-xs font-normal opacity-90">Buy me a coffee ☕</span>
                 </div>
               </Link>
-
-              {/* UPI ID */}
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-foreground">UPI ID</span>
-                  <span className="text-xs text-muted-foreground font-mono">pra9v@fam</span>
-                </div>
-                <button
-                  onClick={handleCopyUpi}
-                  className="px-3 py-1.5 rounded-xl bg-card border border-border/40 text-xs font-bold text-foreground hover:text-primary transition-all flex items-center gap-1.5"
-                >
-                  {copiedUpi ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-primary" />
-                      <span>Copy UPI</span>
-                    </>
-                  )}
-                </button>
-              </div>
 
               <div className="border-t border-border/20 pt-3 flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
