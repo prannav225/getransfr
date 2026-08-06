@@ -1,129 +1,184 @@
 import { Header } from "@/components/layout/Header";
 import { Link } from "wouter";
-import { ArrowLeft, Shield, Server, EyeOff, HardDrive, Smartphone, Lock, Mail } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowLeft, ShieldCheck, Lock, Radio, Server, CheckCircle2, HardDrive, Mail } from "lucide-react";
 
 export function PrivacyPolicy() {
-  const sections = [
-    {
-      icon: Shield,
-      title: "1. Local-First Sovereignty",
-      content:
-        "Getransfr is architected for local-first operations. We do not transmit, analyze, or store your private files or text data on any central servers.",
-    },
-    {
-      icon: Server,
-      title: "2. Point-to-Point Encryption",
-      content:
-        "Files and text payloads are transferred directly between devices via encrypted WebRTC DataChannels (DTLS/SCTP). Signaling servers handle initial discovery only and never persist payload data.",
-    },
-    {
-      icon: EyeOff,
-      title: "3. Zero-Knowledge Collection",
-      content:
-        "• No user accounts or personal information required\n• No persistent device tracking or behavioral analytics\n• No contents inspection or metadata profiling",
-    },
-    {
-      icon: HardDrive,
-      title: "4. On-Device Storage",
-      content:
-        "Volatile metadata such as transfer logs or customized device names are kept purely within your local client sandbox (SharedPreferences / LocalStorage) and never leave your device.",
-    },
-    {
-      icon: Smartphone,
-      title: "5. Third-Party Infrastructure",
-      content:
-        "We utilize static web hosting and minimal telemetry to monitor service health. These providers have no visibility into the actual data being transferred.",
-    },
-    {
-      icon: Lock,
-      title: "6. Policy Amendments",
-      content:
-        "Any modifications to our privacy standards will be published in app releases and reflected directly on our official website.",
-    },
+  const privacyGuarantees = [
+    "No user accounts or logins required",
+    "No personal data collection (PII)",
+    "No file content inspection or profiling",
+    "No behavioral tracking or analytics",
+    "No cloud server file storage",
+    "No third-party data selling or sharing",
   ];
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-background text-foreground flex flex-col font-sans select-none">
+    <div className="relative min-h-[100dvh] w-full bg-background text-foreground flex flex-col font-sans select-none overflow-x-hidden">
       {/* Sticky Header Bar */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/20">
         <Header />
       </div>
 
-      {/* Scrollable Body */}
+      {/* Scrollable Body Container */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8 custom-scrollbar">
-        <div className="max-w-3xl mx-auto space-y-8 pb-16">
-          {/* Back Navigation */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Return to Application</span>
-          </Link>
+        <div className="max-w-4xl mx-auto space-y-10 pb-20">
+          
+          {/* Back Navigation Bar */}
+          <div className="flex items-center justify-between">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-secondary border border-border/40 text-xs font-bold text-muted-foreground hover:text-primary transition-all shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to App</span>
+            </Link>
 
-          {/* Page Hero Header */}
-          <div className="space-y-3 border-l-4 border-primary pl-6">
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-sans">
-              Privacy Policy
-            </h1>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold">
+              <Lock className="w-3.5 h-3.5" />
+              <span>Zero-Knowledge P2P</span>
+            </div>
+          </div>
+
+          {/* Hero Banner Section */}
+          <div className="relative p-8 sm:p-10 rounded-3xl bg-card border border-border/50 shadow-xl overflow-hidden">
+            {/* Ambient Warm Orange Glow */}
+            <div className="absolute -top-24 -right-24 w-72 h-72 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 space-y-4 max-w-2xl">
+              <div className="flex items-center gap-2.5 text-xs font-extrabold uppercase tracking-widest text-primary">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Security & Data Policy</span>
+              </div>
+
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-foreground font-sans leading-tight">
+                Privacy Policy & Data Security
+              </h1>
+
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-normal">
+                Getransfr is engineered from the ground up for absolute local privacy. Your files, text payloads, and transfers never touch or sit on central cloud servers.
+              </p>
+
+              <div className="pt-2 flex items-center gap-4 text-xs text-muted-foreground font-semibold">
+                <span>Effective Date: August 2026</span>
+                <span>•</span>
+                <span>Version 1.0.0</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Visual Architecture Diagram Card */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-card border border-border/40 shadow-sm space-y-6">
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold tracking-wide">
-                Official Document
-              </span>
-              <span className="text-xs text-muted-foreground font-medium">
-                Revision: August 2026
-              </span>
+              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                <Radio className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-foreground">P2P Data Channel Architecture</h2>
+                <p className="text-xs text-muted-foreground">How data moves between your devices</p>
+              </div>
             </div>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed pt-1">
-              Your privacy is fundamental to Getransfr. Our zero-knowledge peer-to-peer architecture guarantees your files and text payloads remain entirely yours.
+
+            {/* Visual Node-to-Node Transfer Flow */}
+            <div className="p-5 rounded-2xl bg-secondary/60 border border-border/30 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-card border border-border/50 flex items-center justify-center font-bold text-xs text-primary shadow-sm">
+                  A
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">Sender Device</h4>
+                  <p className="text-[11px] text-muted-foreground">Local Client Sandbox</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-1 my-2 md:my-0">
+                <div className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[11px] font-bold border border-emerald-500/20">
+                  Encrypted DTLS/SCTP Channel
+                </div>
+                <span className="text-[10px] text-muted-foreground font-mono">Direct Device-to-Device</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-card border border-border/50 flex items-center justify-center font-bold text-xs text-emerald-500 shadow-sm">
+                  B
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">Receiver Device</h4>
+                  <p className="text-[11px] text-muted-foreground">Local Client Sandbox</p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed pl-1">
+              Signaling servers are used exclusively to facilitate initial WebRTC handshake discovery. Once connected, all data flows directly peer-to-peer over your local network or WebRTC channel with 0% server payload retention.
             </p>
           </div>
 
-          {/* Sections List */}
-          <div className="grid grid-cols-1 gap-4">
-            {sections.map((section, idx) => {
-              const Icon = section.icon;
-              return (
-                <motion.div
+          {/* Privacy Guarantees Grid */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-card border border-border/40 shadow-sm space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Core Privacy Commitments</h2>
+                <p className="text-xs text-muted-foreground">Zero-knowledge operational standards</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {privacyGuarantees.map((item, idx) => (
+                <div
                   key={idx}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="p-5 sm:p-6 rounded-2xl bg-card border border-border/40 hover:border-border/70 transition-all shadow-sm space-y-3"
+                  className="flex items-center gap-3 p-3.5 rounded-xl bg-secondary/50 border border-border/30"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-secondary text-primary border border-border/30">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <h2 className="text-base sm:text-lg font-bold text-foreground">
-                      {section.title}
-                    </h2>
-                  </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line pl-1">
-                    {section.content}
-                  </p>
-                </motion.div>
-              );
-            })}
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span className="text-xs font-semibold text-foreground">{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* DPO Contact Footer Card */}
-          <div className="p-6 rounded-2xl bg-card border border-border/40 text-center space-y-3 shadow-sm">
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-              <Mail className="w-5 h-5" />
+          {/* Detailed Policy Provisions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-6 rounded-3xl bg-card border border-border/40 shadow-sm space-y-3">
+              <div className="flex items-center gap-2.5 text-primary font-bold text-sm">
+                <HardDrive className="w-4 h-4" />
+                <h3>On-Device Storage</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Temporary parameters (such as your custom device nickname or transfer history logs) are stored purely within your local browser/app sandbox (LocalStorage / SharedPreferences). They never leave your device.
+              </p>
             </div>
-            <h3 className="text-base font-bold text-foreground">Privacy Inquiries</h3>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              For detailed technical disclosures or policy questions, contact our Privacy Officer.
-            </p>
+
+            <div className="p-6 rounded-3xl bg-card border border-border/40 shadow-sm space-y-3">
+              <div className="flex items-center gap-2.5 text-primary font-bold text-sm">
+                <Server className="w-4 h-4" />
+                <h3>Infrastructure & Analytics</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                We host static client files on Vercel with minimal service health monitoring. These hosting providers have zero access or visibility into payload content being transferred.
+              </p>
+            </div>
+          </div>
+
+          {/* Privacy Officer Contact Section */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-card border border-border/40 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-foreground">Questions or Inquiries?</h3>
+              <p className="text-xs text-muted-foreground">
+                Reach out directly to our Data Protection Officer for technical or privacy clarifications.
+              </p>
+            </div>
+
             <a
               href="mailto:pra9v@proton.me"
-              className="inline-block px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-xs font-bold tracking-wide hover:opacity-90 transition-all shadow-sm"
+              className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all shadow-sm shrink-0 flex items-center gap-2"
             >
-              Contact Privacy Officer
+              <Mail className="w-4 h-4" />
+              <span>Contact Privacy Officer</span>
             </a>
           </div>
+
         </div>
       </div>
     </div>
