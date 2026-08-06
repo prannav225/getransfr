@@ -80,41 +80,36 @@
     color-scheme: light;
     color-scheme: var(--color-scheme);
 
-    /* Soft White Base */
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    /* Light Mode Tokens (Mobile Matching) */
+    --background: 60 4% 97%; /* #F8F8F6 */
+    --foreground: 60 2% 12%; /* #1F1F1E */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 60 2% 12%;
     --card-opacity: 1;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 60 2% 12%;
 
-    --primary: 247 90% 60%;
+    --primary: 15 63% 60%; /* #D97757 Brand Accent */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11.2%;
+    --secondary: 60 4% 94%; /* #F2F2EE */
+    --secondary-foreground: 60 2% 12%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 60 4% 94%;
+    --muted-foreground: 60 2% 45%; /* #757570 */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11.2%;
+    --accent: 15 63% 60%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 247 90% 60%;
+    --border: 60 4% 88%; /* #E6E6E2 */
+    --input: 60 4% 88%;
+    --ring: 15 63% 60%;
     --border-opacity: 1;
-
-    /* Glass Physics - Light */
-    --glass-highlight: rgba(255, 255, 255, 1);
-    --glass-edge-top: rgba(0, 0, 0, 0.08);
-    --glass-edge-bottom: transparent;
 
     --radius-sm: 0.5rem;
     --radius-md: 0.875rem;
@@ -123,69 +118,42 @@
     --radius-full: 9999px;
     --radius: var(--radius-md);
 
-    @media (min-width: 768px) {
-      --radius-sm: 0.75rem;
-      --radius-md: 1.125rem;
-      --radius-lg: 1.5rem;
-      --radius-xl: 2.25rem;
-    }
-
-    @media (min-width: 1024px) {
-      --radius-xl: 2.5rem;
-    }
-
-    /* Standardized Font Sizes */
-    --text-xs: 0.75rem;
-    --text-sm: 0.875rem;
-    --text-base: 1.125rem;
-    --text-lg: 1.25rem;
-    --text-xl: 1.5rem;
-    --text-2xl: 1.875rem;
-    --text-3xl: 2.25rem;
-    --text-4xl: 3rem;
-
-    --card-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.04),
-      0 4px 12px -4px rgba(0, 0, 0, 0.02);
+    --card-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.04);
   }
 
   .dark {
     --color-scheme: dark;
-    /* Premium Ebony Dark Mode - Rich Black, not pitch dark */
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
+    /* Dark Mode Tokens (Mobile Matching) */
+    --background: 60 2% 12%; /* #1F1F1E */
+    --foreground: 0 0% 100%; /* #FFFFFF */
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 98%;
-    --card-opacity: 0.45;
+    --card: 60 2% 16%; /* #2A2A28 */
+    --card-foreground: 0 0% 100%;
+    --card-opacity: 1;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 60 2% 16%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 247 95% 72%;
-    --primary-foreground: 247 50% 5%;
+    --primary: 15 63% 60%; /* #D97757 Brand Accent */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 60 3% 19%; /* #333330 */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 60 3% 19%;
+    --muted-foreground: 60 1% 62%; /* #A0A09C */
 
-    --accent: 0 0% 18%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 15 63% 60%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 100%;
-    --input: 0 0% 100%;
-    --ring: 247 95% 72%;
-    --border-opacity: 0.04; /* Extremely faint border for dark glass */
-    --card-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6);
-
-    /* Glass Physics - Dark */
-    --glass-highlight: rgba(255, 255, 255, 0.02);
-    --glass-edge-top: rgba(255, 255, 255, 0.06);
-    --glass-edge-bottom: transparent;
+    --border: 60 2% 23%; /* #3A3A36 */
+    --input: 60 2% 23%;
+    --ring: 15 63% 60%;
+    --border-opacity: 0.1;
+    --card-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.4);
   }
 }
 

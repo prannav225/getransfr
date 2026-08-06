@@ -3,6 +3,8 @@ import { useDevices } from "@/hooks/useDevices";
 import { useFileTransfer } from "@/hooks/useFileTransfer";
 import { TransferProgress } from "../components/files/TransferProgress";
 import { FileTransferModal } from "@/components/modals/FileTransferModal";
+import { SettingsModal } from "@/components/modals/SettingsModal";
+import { TransferHistoryModal } from "@/components/modals/TransferHistoryModal";
 import { lazy, Suspense, useEffect, useState, useRef } from "react";
 import {
   FileMetadata,
@@ -26,7 +28,6 @@ const ReceiveView = lazy(() =>
   }))
 );
 import { BottomNav } from "@/components/navigation/BottomNav";
-import { Link } from "wouter";
 import { useClipboard } from "@/hooks/useClipboard";
 import { TextTransferModal } from "@/components/modals/TextTransferModal";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -45,26 +46,6 @@ declare global {
       ) => void;
     };
   }
-}
-
-interface TransferRequestDetail {
-  files: FileMetadata[];
-  handleAccept: (handle?: FileSystemHandle | null) => void;
-  handleDecline: () => void;
-}
-
-interface TransferErrorDetail {
-  message: string;
-}
-
-interface TextTransferDetail {
-  from: string;
-  text: string;
-}
-
-interface HistoryRecord {
-  timestamp: number | string;
-  [key: string]: unknown;
 }
 
 export function Home() {
@@ -91,38 +72,17 @@ export function Home() {
     releaseWakeLock: releaseReceiverWakeLock,
   } = useWakeLock();
 
-  const handleFileRemove = (index: number) => {
-    triggerHaptic("medium");
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleClipboardClick = async (to: string) => {
-    console.log("[Home] handleClipboardClick for:", to);
-    const data = await retrieveClipboard();
-    const device = connectedDevices.find((d) => d.socketId === to);
-
-    if (!data) {
-      // Fallback/Empty
-      setTextModal({
-        isOpen: true,
-        mode: "send",
-        text: "",
-        deviceName: device?.name || "Unknown Device",
-        targetSocketId: to,
-      });
-      return;
+  const [activeTab, setActiveTab] = useState<"receive" | "send">("receive");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [transferHistory, setTransferHistory] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem("transfer_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-
-    if (data && data.type === "text" && typeof data.content === "string") {
-      setTextModal({
-        isOpen: true,
-        mode: "send",
-        text: data.content,
-        deviceName: device?.name || "Unknown Device",
-        targetSocketId: to,
-      });
-    }
-  };
+  });
 
   const [textModal, setTextModal] = useState<{
     isOpen: boolean;
@@ -143,310 +103,100 @@ export function Home() {
     handleDecline: () => void;
   } | null>(null);
 
-  useEffect(() => {
-    const checkSharedFiles = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has("share-target")) {
-        try {
-          const db = await new Promise<IDBDatabase>((resolve, reject) => {
-            const request = indexedDB.open("SharedFilesDB", 2);
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-          });
+  const handleClearHistory = () => {
+    setTransferHistory([]);
+    localStorage.removeItem("transfer_history");
+  };
 
-          const files = await new Promise<File[] | null>((resolve) => {
-            const transaction = db.transaction("files", "readonly");
-            const request = transaction
-              .objectStore("files")
-              .get("pending_share");
-            request.onsuccess = () => resolve(request.result);
-          });
+  const handleTabChange = (tab: "receive" | "send") => {
+    setActiveTab(tab);
+    triggerHaptic("light");
+    if (tab === "receive") {
+      requestReceiverWakeLock();
+    } else {
+      releaseReceiverWakeLock();
+    }
+  };
 
-          if (files && files.length > 0) {
-            if ("vibrate" in navigator) navigator.vibrate([30, 80, 30]);
-            const event = {
-              target: {
-                files: Object.assign([], files),
-              },
-            } as unknown as React.ChangeEvent<HTMLInputElement>;
-            handleFileSelect(event);
-            toast.success(`${files.length} file(s) shared with Getransfr`);
+  const handleFileRemove = (index: number) => {
+    triggerHaptic("medium");
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
-            // Clear the storage
-            const deleteTx = db.transaction("files", "readwrite");
-            deleteTx.objectStore("files").delete("pending_share");
-          }
+  const handleClipboardClick = async (to: string) => {
+    const data = await retrieveClipboard();
+    const device = connectedDevices.find((d) => d.socketId === to);
 
-          // Clean URL
-          window.history.replaceState({}, document.title, "/");
-        } catch (err) {
-          console.error("[Home] Failed to retrieve shared files:", err);
-        }
-      }
-    };
-
-    checkSharedFiles();
-
-    // Standard File Handling API (Chrome/Edge native files)
-    if ("launchQueue" in window && window.launchQueue) {
-      window.launchQueue.setConsumer(async (launchParams) => {
-        if (launchParams.files && launchParams.files.length > 0) {
-          const files = await Promise.all(
-            launchParams.files.map((fileHandle) => fileHandle.getFile())
-          );
-
-          if (files.length > 0) {
-            if ("vibrate" in navigator) navigator.vibrate([30, 80, 30]); // High-precision double-pulse for shared files
-            const event = {
-              target: {
-                files: Object.assign([], files),
-              },
-            } as unknown as React.ChangeEvent<HTMLInputElement>;
-            handleFileSelect(event);
-            toast.success(`${files.length} file(s) shared with Getransfr`);
-          }
-        }
+    if (!data || (data.type === "text" && typeof data.content === "string")) {
+      setTextModal({
+        isOpen: true,
+        mode: "send",
+        text: typeof data?.content === "string" ? data.content : "",
+        deviceName: device?.name || "Unknown Device",
+        targetSocketId: to,
       });
     }
+  };
 
-    const handleTransferRequest = (data: TransferRequestDetail) => {
-      const { files, handleAccept, handleDecline } = data;
-
-      if (typeof handleAccept !== "function") {
-        console.error("[Home] handleAccept is MISSING!", data);
-      }
-
-      triggerHaptic("success");
-      setFileTransferRequest({
-        files,
-        handleAccept: handleAccept,
-        handleDecline,
-      });
+  // Event Listeners for Transfer Events
+  useEffect(() => {
+    const handleTransferRequest = (data: any) => {
+      setFileTransferRequest(data);
     };
 
-    const handleTransferError = (data: TransferErrorDetail) => {
-      const { message } = data;
-      toast.error(message);
-    };
-
-    const handleTextTransferRequest = (data: TextTransferDetail) => {
-      const { from, text } = data;
-      const sender = connectedDevicesRef.current.find(
-        (d) => d.socketId === from
-      );
-      triggerHaptic("medium");
+    const handleTextReceived = (data: { from: string; text: string }) => {
       setTextModal({
         isOpen: true,
         mode: "receive",
-        text,
-        deviceName: sender?.name || "Unknown Device",
-        targetSocketId: from,
+        text: data.text,
+        deviceName: data.from,
       });
     };
 
-    // Cleanup old history
-    const savedHistory = localStorage.getItem("transferHistory");
-    if (savedHistory) {
-      try {
-        const history = JSON.parse(savedHistory);
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const filtered = history.filter(
-          (record: HistoryRecord) => new Date(record.timestamp) > sevenDaysAgo
-        );
-        if (filtered.length !== history.length) {
-          localStorage.setItem("transferHistory", JSON.stringify(filtered));
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-
-    const handleTransferComplete = () => {
-      releaseReceiverWakeLock();
-      if (Notification.permission === "granted") {
-        new Notification("Transfer Complete", {
-          body: "Files have been transferred successfully.",
-          icon: "/getransfr-logo.png",
-        });
-      }
-    };
-
-    const handleTransferStart = () => {
-      requestReceiverWakeLock();
-    };
-
-    const unsubFileTransfer = eventBus.on(
-      EVENTS.FILE_TRANSFER_REQUEST,
-      handleTransferRequest
-    );
-    const unsubFileError = eventBus.on(
-      EVENTS.FILE_TRANSFER_ERROR,
-      (data: TransferErrorDetail) => {
-        handleTransferError(data);
-        releaseReceiverWakeLock();
-      }
-    );
-    const unsubFileComplete = eventBus.on(
-      EVENTS.FILE_TRANSFER_COMPLETE,
-      handleTransferComplete
-    );
-    const unsubTextTransfer = eventBus.on(
-      EVENTS.TEXT_TRANSFER_REQUEST,
-      handleTextTransferRequest
-    );
-    const unsubFileStart = eventBus.on(
-      EVENTS.FILE_TRANSFER_START,
-      handleTransferStart
-    );
+    const unsub1 = eventBus.on(EVENTS.FILE_TRANSFER_REQUEST, handleTransferRequest);
+    const unsub2 = eventBus.on(EVENTS.TEXT_TRANSFER_REQUEST, handleTextReceived);
 
     return () => {
-      unsubFileTransfer();
-      unsubFileError();
-      unsubFileComplete();
-      unsubTextTransfer();
-      unsubFileStart();
-      releaseReceiverWakeLock();
+      unsub1();
+      unsub2();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array means these listeners are set once and remain stable
-
-  // Stagger animation for children
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.12,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring" as const,
-        stiffness: 100,
-      },
-    },
-  };
-
-  const [activeTab, setActiveTab] = useState<"send" | "receive">("receive");
-
-  const handleTabChange = (tab: "send" | "receive") => {
-    if (tab === activeTab) return;
-    setActiveTab(tab);
-  };
-
-  const slideVariants = {
-    enter: {
-      opacity: 0,
-      scale: 0.98,
-      filter: "blur(10px)",
-    },
-    center: {
-      zIndex: 1,
-      opacity: 1,
-      scale: 1,
-      filter: "blur(0px)",
-    },
-    exit: {
-      zIndex: 0,
-      opacity: 0,
-      scale: 1.02,
-      filter: "blur(10px)",
-    },
-  };
-
-  const slideTransition = {
-    opacity: { duration: 0.35 },
-    scale: {
-      duration: 0.4,
-      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
-    },
-    filter: { duration: 0.35 },
-  };
+  }, []);
 
   return (
-    <div className="relative h-[100dvh] font-sans overflow-hidden">
-      <Suspense fallback={<div className="fixed inset-0 bg-background" />}>
+    <div className="relative h-[100dvh] w-full overflow-hidden bg-background text-foreground flex flex-col font-sans select-none">
+      <Suspense fallback={null}>
         <AnimatedBackground />
       </Suspense>
 
-      {/* Overlays and Modals - High Priority */}
-      <div className="fixed inset-0 z-[100] pointer-events-none">
-        <AnimatePresence>
-          {fileTransferRequest && (
-            <div className="pointer-events-auto">
-              <FileTransferModal
-                files={fileTransferRequest.files}
-                onConfirm={async () => {
-                  if (!fileTransferRequest) return;
+      {/* Modals & Sheets */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentDevice={currentDevice}
+      />
 
-                  const { files, handleAccept } = fileTransferRequest;
-                  let handle: FileSystemHandle | undefined;
+      <TransferHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        history={transferHistory}
+        onClearHistory={handleClearHistory}
+      />
 
-                  try {
-                    // 1. Try modern Folder Picker (Chrome/Edge/Desktop)
-                    if (typeof window.showDirectoryPicker === "function") {
-                      const parent = await window.showDirectoryPicker({
-                        mode: "readwrite",
-                      });
-
-                      // Avoid creating Getransfr/Getransfr
-                      if (parent.name === "Getransfr") {
-                        handle = parent;
-                      } else {
-                        try {
-                          // Try to get or create the Getransfr subfolder
-                          handle = await parent.getDirectoryHandle("Getransfr", {
-                            create: true,
-                          });
-                        } catch (subFolderErr) {
-                          // If the device/browser denies creating a subfolder,
-                          // fallback to saving directly in the folder the user just selected.
-                          console.warn(
-                            "[Home] Could not create/access Getransfr subfolder, using selected folder directly:",
-                            subFolderErr
-                          );
-                          handle = parent;
-                        }
-                      }
-                    }
-                    // 2. Fallback to Save File Picker for single files
-                    else if (
-                      typeof window.showSaveFilePicker === "function" &&
-                      files.length === 1
-                    ) {
-                      handle = await window.showSaveFilePicker({
-                        suggestedName: files[0].name,
-                      });
-                    }
-                  } catch (err) {
-                    // User cancelled or browser blocked; handle remains undefined (fallback to blob)
-                    console.log(
-                      "[Home] File system access skipped, using fallback",
-                      err
-                    );
-                  }
-
-                  handleAccept?.(handle);
-                  setFileTransferRequest(null);
-                  toast.success("Transfer accepted");
-                }}
-                onCancel={() => {
-                  fileTransferRequest?.handleDecline?.();
-                  setFileTransferRequest(null);
-                  toast("Transfer declined");
-                }}
-              />
-            </div>
-          )}
-        </AnimatePresence>
-      </div>
+      <AnimatePresence>
+        {fileTransferRequest && (
+          <FileTransferModal
+            files={fileTransferRequest.files}
+            onConfirm={async () => {
+              fileTransferRequest.handleAccept();
+              setFileTransferRequest(null);
+            }}
+            onCancel={() => {
+              fileTransferRequest.handleDecline();
+              setFileTransferRequest(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {textModal.isOpen && (
@@ -473,27 +223,18 @@ export function Home() {
       </AnimatePresence>
 
       {/* Main Layout Container */}
-      <motion.div
-        className="relative z-10 h-full w-full flex flex-col bg-background"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Header - Fixed/Absolute Layer */}
-        <motion.div
-          variants={itemVariants}
-          className="fixed top-0 left-0 right-0 z-40 bg-background sm:bg-background/80 backdrop-blur-lg border-b border-border/10 p-0 sm:p-0 pt-[env(safe-area-inset-top)] flex items-center justify-center"
-        >
-          <div className="w-full">
-            <Header currentDevice={currentDevice} />
-          </div>
-        </motion.div>
+      <div className="relative z-10 h-full w-full flex flex-col bg-background">
+        {/* Header Bar */}
+        <Header
+          activeTab={activeTab}
+          onOpenHistory={() => setIsHistoryOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
 
-        {/* Scrollable Content Layer - Full Height */}
+        {/* Scrollable Content Layer */}
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-background">
-          {/* Content Wrapper with Space for Header */}
-          <div className="min-h-full flex flex-col px-0 sm:px-8 lg:px-12 pt-32 lg:pt-40 pb-40 w-full max-w-7xl mx-auto">
-            {/* View Container - Responsive Cross-Fade */}
+          <div className="min-h-full flex flex-col pt-4 pb-28 w-full max-w-4xl mx-auto">
+            {/* View Container */}
             <div className="flex-1 relative w-full">
               <Suspense
                 fallback={
@@ -503,12 +244,11 @@ export function Home() {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={slideTransition}
-                    className="w-full h-full transform-gpu overflow-x-hidden touch-pan-y"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="w-full h-full"
                   >
                     {activeTab === "send" ? (
                       <SendView
@@ -533,36 +273,11 @@ export function Home() {
                 </AnimatePresence>
               </Suspense>
             </div>
-
-            {/* Footer */}
-            <div className="py-8 text-center space-y-2 relative z-0 flex-none px-4">
-              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/60">
-                Designed for Speed. Built with privacy in mind.
-              </p>
-              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/50">
-                Send. Copy. Done
-              </p>
-              <div className="flex items-center justify-center gap-4 mt-4">
-                <Link
-                  href="/privacy"
-                  className="text-muted-foreground/40 hover:text-primary transition-colors text-[10px] font-bold uppercase tracking-widest block"
-                >
-                  Privacy Policy
-                </Link>
-                <div className="w-1 h-1 rounded-full bg-muted-foreground/20" />
-                <Link
-                  href="/support"
-                  className="text-muted-foreground/40 hover:text-amber-500 transition-colors text-[10px] font-bold uppercase tracking-widest block"
-                >
-                  Support
-                </Link>
-              </div>
-            </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Bottom Navigation */}
+      {/* Floating Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
 
       <TransferProgress

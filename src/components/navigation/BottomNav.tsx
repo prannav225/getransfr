@@ -1,10 +1,10 @@
-import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useHaptics } from "@/hooks/useHaptics";
 
 interface BottomNavProps {
-  activeTab: "send" | "receive";
-  onTabChange: (tab: "send" | "receive") => void;
+  activeTab: "receive" | "send";
+  onTabChange: (tab: "receive" | "send") => void;
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
@@ -16,8 +16,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ] as const;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border/10 pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="flex items-stretch justify-center h-20 max-w-lg mx-auto px-6">
+    <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
+      <div className="pointer-events-auto flex items-center p-1.5 bg-card/90 backdrop-blur-xl border border-border/40 rounded-full shadow-lg">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -26,33 +26,22 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             <button
               key={tab.id}
               onClick={() => {
-                onTabChange(tab.id);
                 triggerHaptic("light");
+                onTabChange(tab.id);
               }}
-              className="flex-1 relative flex flex-col items-center justify-center gap-1.5 outline-none group transform-gpu"
+              className={`relative flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-xs sm:text-sm tracking-tight transition-colors duration-200 outline-none ${
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <div
-                className={`flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 ${
-                  isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"
-                }`}
-              >
-                <Icon
-                  className={`w-6 h-6 ${isActive ? "stroke-[2.5]" : "stroke-[1.5]"}`}
+              {isActive && (
+                <motion.div
+                  layoutId="activeTabPill"
+                  className="absolute inset-0 bg-secondary rounded-full"
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
                 />
-              </div>
-              <span
-                className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300 ${
-                  isActive ? "text-primary" : "text-muted-foreground/50"
-                }`}
-              >
-                {tab.label}
-              </span>
-
-              {/* Tap Feedback Layer */}
-              <motion.div
-                whileTap={{ scale: 0.95 }}
-                className="absolute inset-0 z-0"
-              />
+              )}
+              <Icon className="relative z-10 w-4 h-4 stroke-[2.5]" />
+              <span className="relative z-10">{tab.label}</span>
             </button>
           );
         })}
