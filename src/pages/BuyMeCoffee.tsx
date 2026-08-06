@@ -1,138 +1,157 @@
-import { ArrowLeft, Coffee, Copy, Check, QrCode } from "lucide-react";
-import { Link } from "wouter";
 import { Header } from "@/components/layout/Header";
+import { Link } from "wouter";
+import { ArrowLeft, Coffee, QrCode, Copy, Check, Github, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { motion } from "framer-motion";
 
 export function BuyMeCoffee() {
-  const [isCopied, setIsCopied] = useState(false);
-  const upiId = "pr9n9v@axisbank";
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const upiId = "pra9v@fam";
 
   const handleCopyUPI = () => {
     navigator.clipboard.writeText(upiId);
-    setIsCopied(true);
+    setCopiedUpi(true);
     toast.success("UPI ID copied to clipboard!");
-    setTimeout(() => setIsCopied(false), 2000);
+    setTimeout(() => setCopiedUpi(false), 2000);
   };
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-background text-foreground flex flex-col font-sans">
-      {/* Muted Background Layer */}
-      <div className="fixed inset-0 pointer-events-none opacity-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/5 to-background" />
+    <div className="relative h-[100dvh] w-full overflow-hidden bg-background text-foreground flex flex-col font-sans select-none">
+      {/* Sticky Header Bar */}
+      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/20">
+        <Header />
       </div>
 
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-40 p-4 sm:p-6 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <Header currentDevice={null} />
-      </div>
+      {/* Scrollable Body */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8 custom-scrollbar">
+        <div className="max-w-3xl mx-auto space-y-8 pb-16">
+          {/* Back Navigation */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Return to Application</span>
+          </Link>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-24 sm:pt-32 pb-12 custom-scrollbar z-0">
-        <div className="max-w-3xl mx-auto py-8">
-          {/* Back & Title */}
-          <div className="mb-12">
-            <Link href="/">
-              <a className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors mb-6 group">
-                <ArrowLeft className="w-3 h-3 transition-transform group-hover:-translate-x-1" />
-                Return to Application
-              </a>
-            </Link>
-
-            <div className="space-y-4 border-l-2 border-primary/20 pl-6">
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight font-outfit">
-                Support Development
-              </h1>
-              <p className="text-muted-foreground text-sm sm:text-lg leading-relaxed max-w-xl font-inter">
-                Getransfr is a community-driven, open-source project. While the
-                service remains free and ad-free, your contributions help
-                sustain infrastructure and future development.
-              </p>
-            </div>
-          </div>
-
-          {/* Options Grid */}
-          <div className="grid grid-cols-1 gap-4">
-            {/* Option 1: Buy Me a Coffee */}
-            <a
-              href="https://www.buymeacoffee.com/pra9v"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative overflow-hidden rounded-[2.5rem] bg-glass-card border border-border/40 p-8 transition-all duration-300 hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-8">
-                <div className="p-5 rounded-2xl bg-muted/20 border border-border/40 shrink-0 shadow-sm transition-transform duration-500 group-hover:scale-105">
-                  <Coffee className="w-8 h-8 text-muted-foreground" />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-2xl font-bold font-outfit">
-                      Global Contribution
-                    </h3>
-                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[8px] font-black uppercase tracking-wider">
-                      Popular
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground text-sm sm:text-base pr-4 leading-relaxed font-inter">
-                    Support the project via Buy Me a Coffee, accepting
-                    international payments.
-                  </p>
-                </div>
-              </div>
-            </a>
-
-            {/* Option 2: UPI Support */}
-            <div className="group relative overflow-hidden rounded-[2.5rem] bg-glass-card border border-border/40 p-8 transition-all duration-300">
-              <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-8">
-                <div className="p-5 rounded-2xl bg-muted/20 border border-border/40 shrink-0 shadow-sm transition-transform duration-500 group-hover:scale-105">
-                  <QrCode className="w-8 h-8 text-muted-foreground" />
-                </div>
-
-                <div className="flex-1 min-w-0 w-full">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-2xl font-bold font-outfit">
-                      Regional (UPI)
-                    </h3>
-                    <span className="px-2 py-0.5 rounded-full bg-muted/20 text-muted-foreground text-[8px] font-black uppercase tracking-wider">
-                      India
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground text-sm sm:text-base mb-6 leading-relaxed font-inter">
-                    Direct transfer via Unified Payments Interface for local
-                    support.
-                  </p>
-
-                  {/* UPI Copy Area */}
-                  <div className="relative flex items-center bg-black/5 dark:bg-white/5 rounded-2xl border border-border/40 p-3 pr-14 transition-all focus-within:ring-2 focus-within:ring-primary/20">
-                    <code className="flex-1 font-mono text-xs sm:text-sm px-2 text-foreground truncate select-all font-bold">
-                      {upiId}
-                    </code>
-                    <button
-                      onClick={handleCopyUPI}
-                      className="absolute right-2 top-2 bottom-2 px-4 rounded-xl bg-foreground text-background transition-all flex items-center justify-center hover:opacity-90 active:scale-95 shadow-sm"
-                      title="Copy UPI ID"
-                    >
-                      {isCopied ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-16 text-center space-y-4">
-            <div className="w-12 h-1 bg-border/40 mx-auto rounded-full" />
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-[0.2em]">
-              Gratitude for your support
+          {/* Page Hero Header */}
+          <div className="space-y-3 border-l-4 border-primary pl-6">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-sans">
+              Support Development
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed pt-1">
+              Getransfr is 100% free, private, and open-source with no ads or tracking. Your support helps sustain server signaling infrastructure and future mobile/web releases!
             </p>
           </div>
 
-          <div className="h-12" />
+          {/* Contribution Options */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Option 1: Buy Me a Coffee */}
+            <motion.a
+              href="https://www.buymeacoffee.com/pra9v"
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-6 rounded-2xl bg-card border border-border/40 hover:border-primary/50 transition-all shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3.5 rounded-2xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                  <Coffee className="w-7 h-7" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-foreground">
+                      Buy Me a Coffee
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                      International
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Support via credit card, Apple Pay, or Google Pay.
+                  </p>
+                </div>
+              </div>
+
+              <div className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-2 shadow-sm group-hover:opacity-90 transition-all">
+                <span>Buy me a coffee ☕</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </div>
+            </motion.a>
+
+            {/* Option 2: Regional UPI Support */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="p-6 rounded-2xl bg-card border border-border/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3.5 rounded-2xl bg-secondary text-primary border border-border/30">
+                  <QrCode className="w-7 h-7" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-foreground">
+                      UPI Direct Payment
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[10px] font-bold">
+                      India (Instant)
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                    UPI ID: {upiId}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCopyUPI}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-secondary border border-border/40 text-xs font-bold text-foreground hover:text-primary transition-all flex items-center justify-center gap-2 shadow-sm"
+              >
+                {copiedUpi ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-primary" />
+                    <span>Copy UPI ID</span>
+                  </>
+                )}
+              </button>
+            </motion.div>
+
+            {/* Option 3: GitHub Open Source */}
+            <motion.a
+              href="https://github.com/prannav225/getransfr"
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="p-6 rounded-2xl bg-card border border-border/40 hover:border-border/70 transition-all shadow-sm flex items-center justify-between gap-4 group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3.5 rounded-2xl bg-secondary text-foreground border border-border/30">
+                  <Github className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-foreground">
+                    Star on GitHub
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Contribute code or star the official repository.
+                  </p>
+                </div>
+              </div>
+
+              <ExternalLink className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </motion.a>
+          </div>
         </div>
       </div>
     </div>
