@@ -1,8 +1,29 @@
+import { useState } from "react";
 import { Header } from "@/components/layout/Header";
+import { SettingsModal } from "@/components/modals/SettingsModal";
+import { TransferHistoryModal } from "@/components/modals/TransferHistoryModal";
+import { useDevices } from "@/hooks/useDevices";
 import { Link } from "wouter";
 import { ArrowLeft, ShieldCheck, Lock, Radio, Server, CheckCircle2, HardDrive, Mail } from "lucide-react";
 
 export function PrivacyPolicy() {
+  const { currentDevice, updateDeviceName, randomizeAvatar } = useDevices();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [transferHistory, setTransferHistory] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem("transfer_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleClearHistory = () => {
+    setTransferHistory([]);
+    localStorage.removeItem("transfer_history");
+  };
+
   const privacyGuarantees = [
     "No user accounts or logins required",
     "No personal data collection (PII)",
@@ -16,8 +37,27 @@ export function PrivacyPolicy() {
     <div className="relative min-h-[100dvh] w-full bg-background text-foreground flex flex-col font-sans select-none overflow-x-hidden">
       {/* Sticky Header Bar */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/20">
-        <Header />
+        <Header
+          onOpenHistory={() => setIsHistoryOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
       </div>
+
+      {/* Settings & History Modals */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentDevice={currentDevice}
+        onUpdateDeviceName={updateDeviceName}
+        onRandomizeAvatar={randomizeAvatar}
+      />
+
+      <TransferHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        history={transferHistory}
+        onClearHistory={handleClearHistory}
+      />
 
       {/* Scrollable Body Container */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8 custom-scrollbar">
@@ -41,7 +81,6 @@ export function PrivacyPolicy() {
 
           {/* Hero Banner Section */}
           <div className="relative p-8 sm:p-10 rounded-3xl bg-card border border-border/50 shadow-xl overflow-hidden">
-            {/* Ambient Warm Orange Glow */}
             <div className="absolute -top-24 -right-24 w-72 h-72 bg-primary/15 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10 space-y-4 max-w-2xl">
@@ -78,7 +117,6 @@ export function PrivacyPolicy() {
               </div>
             </div>
 
-            {/* Visual Node-to-Node Transfer Flow */}
             <div className="p-5 rounded-2xl bg-secondary/60 border border-border/30 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-card border border-border/50 flex items-center justify-center font-bold text-xs text-primary shadow-sm">

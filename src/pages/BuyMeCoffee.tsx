@@ -1,11 +1,31 @@
+import { useState } from "react";
 import { Header } from "@/components/layout/Header";
+import { SettingsModal } from "@/components/modals/SettingsModal";
+import { TransferHistoryModal } from "@/components/modals/TransferHistoryModal";
+import { useDevices } from "@/hooks/useDevices";
 import { Link } from "wouter";
 import { ArrowLeft, Coffee, QrCode, Copy, Check, ExternalLink, Heart, Zap, Shield } from "lucide-react";
-import { useState } from "react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 
 export function BuyMeCoffee() {
+  const { currentDevice, updateDeviceName, randomizeAvatar } = useDevices();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [transferHistory, setTransferHistory] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem("transfer_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleClearHistory = () => {
+    setTransferHistory([]);
+    localStorage.removeItem("transfer_history");
+  };
+
   const [copiedUpi, setCopiedUpi] = useState(false);
   const upiId = "pr9n9v@axisbank";
 
@@ -26,8 +46,27 @@ export function BuyMeCoffee() {
     <div className="relative min-h-[100dvh] w-full bg-background text-foreground flex flex-col font-sans select-none overflow-x-hidden">
       {/* Sticky Header Bar */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/20">
-        <Header />
+        <Header
+          onOpenHistory={() => setIsHistoryOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
       </div>
+
+      {/* Settings & History Modals */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentDevice={currentDevice}
+        onUpdateDeviceName={updateDeviceName}
+        onRandomizeAvatar={randomizeAvatar}
+      />
+
+      <TransferHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        history={transferHistory}
+        onClearHistory={handleClearHistory}
+      />
 
       {/* Scrollable Body Container */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8 custom-scrollbar">
@@ -51,7 +90,6 @@ export function BuyMeCoffee() {
 
           {/* Hero Presentation Card */}
           <div className="relative p-8 sm:p-12 rounded-3xl bg-card border border-border/50 shadow-xl overflow-hidden text-center sm:text-left">
-            {/* Ambient Brand Glow */}
             <div className="absolute -top-24 -right-24 w-80 h-80 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10 max-w-2xl space-y-4">
@@ -125,7 +163,7 @@ export function BuyMeCoffee() {
               </a>
             </motion.div>
 
-            {/* Option 2: UPI Direct Payment (India) */}
+            {/* Option 2: Regional UPI Support */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
