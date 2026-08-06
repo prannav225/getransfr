@@ -36,7 +36,7 @@ export function PrivacyPolicy() {
   return (
     <div className="relative min-h-[100dvh] w-full bg-background text-foreground flex flex-col font-sans select-none overflow-x-hidden">
       {/* Sticky Header Bar */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/20">
+      <div className="sticky top-0 z-40">
         <Header
           onOpenHistory={() => setIsHistoryOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}

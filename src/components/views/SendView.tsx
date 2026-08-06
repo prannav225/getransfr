@@ -3,6 +3,7 @@ import { DeviceList } from "@/components/devices/DeviceList";
 import { Device } from "@/types/device";
 import { motion } from "framer-motion";
 
+
 interface SendViewProps {
   selectedFiles: File[];
   handleFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -13,6 +14,8 @@ interface SendViewProps {
   handleSendFiles: (device: Device) => Promise<void>;
   onClipboardClick: (to: string) => void;
   isSending: boolean;
+  onRefreshDevices?: () => void;
+  isRefreshing?: boolean;
 }
 
 export function SendView({
@@ -25,6 +28,8 @@ export function SendView({
   handleSendFiles,
   onClipboardClick,
   isSending,
+  onRefreshDevices,
+  isRefreshing,
 }: SendViewProps) {
   const avatarUrl =
     currentDevice?.avatar ||
@@ -37,7 +42,7 @@ export function SendView({
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-xl mx-auto px-4 py-4 flex flex-col gap-5 pb-24"
     >
-      {/* Current Device Identity Badge (Matching Mobile App) */}
+      {/* Current Device Identity Badge */}
       <div className="flex justify-center">
         <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-card border border-border/40 shadow-sm">
           <div className="relative">
@@ -55,18 +60,28 @@ export function SendView({
         </div>
       </div>
 
-      {/* Select Payload Card */}
-      <div className="w-full rounded-2xl bg-card border border-border/40 shadow-sm overflow-hidden p-1">
-        <FileUpload
-          selectedFiles={selectedFiles}
-          onFileSelect={handleFileSelect}
-          onFileRemove={handleFileRemove}
-          onClearAll={onClearAll}
-        />
+      {/* STEP 1: Select Payload Banner & Dropzone */}
+      <div className="w-full space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <span>STEP 1 • CHOOSE FILES TO SEND</span>
+            </h3>
+          </div>
+        </div>
+
+        <div className="w-full">
+          <FileUpload
+            selectedFiles={selectedFiles}
+            onFileSelect={handleFileSelect}
+            onFileRemove={handleFileRemove}
+            onClearAll={onClearAll}
+          />
+        </div>
       </div>
 
-      {/* Nearby Devices Section */}
-      <div className="w-full">
+      {/* STEP 2: Nearby Devices Section */}
+      <div className="w-full pt-1">
         <DeviceList
           currentDevice={currentDevice}
           connectedDevices={connectedDevices}
@@ -74,6 +89,8 @@ export function SendView({
           onClipboardClick={onClipboardClick}
           selectedFiles={selectedFiles}
           isSending={isSending}
+          onRefreshDevices={onRefreshDevices}
+          isRefreshing={isRefreshing}
         />
       </div>
     </motion.div>

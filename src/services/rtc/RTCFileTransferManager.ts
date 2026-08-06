@@ -227,11 +227,24 @@ class RTCFileTransferManager {
 
             if (sentOffset >= file.size) {
               worker.terminate();
-              dataChannel.send(
-                JSON.stringify({ type: "file-complete", name: file.name })
-              );
-              this.sentSizes.set(peerId, batchBase + file.size);
-              resolve();
+
+              const checkBufferAndComplete = () => {
+                if (dataChannel.bufferedAmount === 0 || dataChannel.readyState !== "open") {
+                  try {
+                    dataChannel.send(
+                      JSON.stringify({ type: "file-complete", name: file.name })
+                    );
+                  } catch (e) {
+                    console.warn("[RTC] Failed to send file-complete signal", e);
+                  }
+                  this.sentSizes.set(peerId, batchBase + file.size);
+                  resolve();
+                } else {
+                  setTimeout(checkBufferAndComplete, 50);
+                }
+              };
+
+              checkBufferAndComplete();
             }
           } catch (err) {
             worker.terminate();

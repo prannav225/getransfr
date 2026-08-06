@@ -1,7 +1,6 @@
-import { Upload, X, CheckCircle2 } from "lucide-react";
+import { PlusCircle, FileText, X } from "lucide-react";
 import { useState } from "react";
-import { FileTypeIcon } from "./FileTypeIcon";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface FileUploadProps {
   selectedFiles: File[];
@@ -37,7 +36,6 @@ interface FileSystemDirectoryEntry extends FileSystemEntry {
 export function FileUpload({
   selectedFiles,
   onFileSelect,
-  onFileRemove,
   onClearAll,
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -101,127 +99,67 @@ export function FileUpload({
     }
   };
 
+  const hasFiles = selectedFiles.length > 0;
+  const totalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0);
+  const formattedSize = (totalSize / 1024 / 1024).toFixed(2) + " MB";
+
   return (
-    <div className="relative p-5 lg:p-8 h-full flex flex-col group/card">
-      <div className="flex items-center justify-between mb-6 relative z-10 px-1">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Upload className="w-5 h-5 text-primary" />
-          </div>
-          <h2 className="text-lg font-bold tracking-tight font-outfit uppercase">
-            Select Files
-          </h2>
+    <motion.div
+      className={`relative flex items-center justify-between w-full rounded-[22px] border p-5 transition-all duration-300 ease-in-out cursor-pointer shadow-sm ${
+        isDragging
+          ? "border-primary bg-primary/5"
+          : hasFiles
+          ? "border-primary bg-card"
+          : "border-border/40 bg-card hover:border-primary/40"
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => document.getElementById("file-upload")?.click()}
+    >
+      <input
+        type="file"
+        multiple
+        onChange={onFileSelect}
+        className="hidden"
+        id="file-upload"
+        accept="*/*"
+      />
+
+      <div className="flex items-center gap-4 min-w-0">
+        <div className={`w-12 h-12 shrink-0 flex items-center justify-center rounded-2xl ${
+          hasFiles ? "bg-primary/10 text-primary" : "bg-muted/50 text-muted-foreground"
+        }`}>
+          {hasFiles ? (
+            <FileText className="w-6 h-6" />
+          ) : (
+            <PlusCircle className="w-6 h-6" />
+          )}
         </div>
-        {selectedFiles.length > 0 && (
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-            <CheckCircle2 className="w-3 h-3 text-primary" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-              {selectedFiles.length} Ready
-            </span>
-          </div>
-        )}
+        
+        <div className="flex flex-col min-w-0">
+          <p className="text-[16px] font-bold text-foreground truncate">
+            {hasFiles ? `${selectedFiles.length} File(s) Selected` : "Select Payload"}
+          </p>
+          <p className="text-[12px] text-muted-foreground truncate">
+            {hasFiles ? formattedSize : "Tap to choose photos, videos, or files"}
+          </p>
+        </div>
       </div>
 
-      <motion.div
-        className={`relative flex flex-col items-center justify-center w-full min-h-[140px] lg:min-h-[220px] rounded-2xl border transition-all duration-300 ease-in-out cursor-pointer ${
-          isDragging
-            ? "border-primary bg-primary/10 shadow-lg shadow-primary/5"
-            : "border-border/10 bg-muted/20 hover:bg-muted/30"
-        }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        whileTap={{ scale: 0.99 }}
-        onClick={() => document.getElementById("file-upload")?.click()}
-      >
-        <input
-          type="file"
-          multiple
-          onChange={onFileSelect}
-          className="hidden"
-          id="file-upload"
-          accept="*/*"
-        />
-
-        <div className="flex flex-col items-center justify-center relative z-10 py-8 lg:py-16">
-          <motion.div
-            animate={isDragging ? { y: -5, scale: 1.1 } : { y: 0 }}
-            className={`p-5 rounded-2xl mb-4 ${
-              isDragging ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
-            }`}
-          >
-            <Upload className="w-8 h-8 lg:w-9 lg:h-9" />
-          </motion.div>
-
-          <div className="text-center px-6">
-            <p className="text-base font-bold text-foreground mb-1 font-outfit">
-              {isDragging ? "Drop to add files" : "Tap or Drop files here"}
-            </p>
-            <p className="text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest leading-relaxed">
-              Folders and files supported
-            </p>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Selected Files List */}
-      <AnimatePresence>
-        {selectedFiles.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-6 flex-1 flex flex-col min-h-0"
-          >
-            <div className="flex items-center justify-between mb-3 px-1">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
-                Selection
-              </span>
-              <button
-                onClick={onClearAll}
-                className="text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors flex items-center gap-1.5"
-              >
-                Clear All
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-              {selectedFiles.map((file, index) => (
-                <motion.div
-                  key={`${file.name}-${index}`}
-                  className="group relative flex items-center gap-3 p-3 rounded-xl bg-background border border-border/5 hover:bg-muted/30 transition-all duration-200"
-                >
-                  <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg bg-card border border-border/5">
-                    <FileTypeIcon
-                      mimeType={file.type}
-                      className="w-5 h-5 text-primary"
-                    />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate font-outfit">
-                      {file.name}
-                    </p>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mt-0.5">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFileRemove(index);
-                    }}
-                    className="p-2 text-muted-foreground/40 hover:text-destructive transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      {hasFiles && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClearAll();
+          }}
+          className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors ml-2"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      )}
+    </motion.div>
   );
 }
+

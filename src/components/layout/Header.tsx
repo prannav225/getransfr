@@ -36,58 +36,68 @@ export function Header({
   };
 
   const title = activeTab === "receive" ? "Receive" : "Send";
-
   return (
-    <header className="w-full flex items-center justify-between px-5 sm:px-8 py-3 bg-background/80 backdrop-blur-md border-b border-border/20 z-40">
-      {/* Title / Brand */}
-      <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-[-0.6px] text-foreground font-sans">
-          {title}
-        </h1>
-      </Link>
-
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2.5">
-        {/* Theme Switcher Circular Pill */}
-        <button
-          onClick={toggleTheme}
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-primary transition-all duration-200 active:scale-95 shadow-sm"
-          title="Toggle Theme"
-        >
-          {isDark ? (
-            <Sun className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary" />
-          ) : (
-            <Moon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary" />
-          )}
-        </button>
-
-        {/* Combined History & Settings Capsule Pill */}
-        <div className="flex items-center h-9 sm:h-10 px-1 bg-card border border-border/40 rounded-full shadow-sm">
-          <button
-            onClick={() => {
-              triggerHaptic("light");
-              onOpenHistory?.();
-            }}
-            className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-full active:scale-95"
-            title="Transfer History"
+    <>
+      <div className="fixed top-0 left-0 right-0 h-24 pointer-events-none z-40 bg-(--bg)/40 [-webkit-backdrop-filter:blur(16px)] [backdrop-filter:blur(16px)] mask-[linear-gradient(to_bottom,black_0%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,black_0%,transparent_100%)]" />
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-transparent px-4 sm:px-8 pointer-events-none transition-all duration-300 max-w-4xl mx-auto pt-4 pb-2">
+        {/* Leading Edge: Navigation Title */}
+        <div className="flex items-center gap-3 pointer-events-auto min-w-0">
+          <Link
+            href="/"
+            className="flex items-center gap-2 hover:opacity-90 transition-opacity"
           >
-            <History className="w-4 h-4 text-primary" />
-          </button>
-
-          <div className="w-[0.5px] h-4 bg-border/60 mx-0.5" />
-
-          <button
-            onClick={() => {
-              triggerHaptic("light");
-              onOpenSettings?.();
-            }}
-            className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-full active:scale-95"
-            title="Settings & Profile"
-          >
-            <Settings className="w-4 h-4 text-primary" />
-          </button>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-[-0.6px] text-foreground font-sans truncate">
+              {title}
+            </h1>
+          </Link>
         </div>
-      </div>
-    </header>
+
+        {/* Trailing Edge: Grouped Toolbar Items in Glass Pill */}
+        <div className="flex items-center justify-end gap-2.5 pointer-events-auto shrink-0">
+          <div className="flex items-center p-1 border border-black/5 dark:border-white/10 bg-white/40 dark:bg-[#2d2d2c]/60 backdrop-blur-3xl rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.05),inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.05)]">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="relative h-7 w-7 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-all cursor-pointer bg-transparent text-foreground/80 hover:text-primary hover:bg-black/5 dark:hover:bg-white/10 border-none outline-none"
+              aria-label="Toggle Theme"
+            >
+              {isDark ? (
+                <Sun className="w-4 h-4 text-primary" />
+              ) : (
+                <Moon className="w-4 h-4 text-primary" />
+              )}
+            </button>
+
+            <div className="w-[0.5px] h-4 bg-border/60 mx-0.5" />
+
+            {/* History Button */}
+            <button
+              onClick={() => {
+                triggerHaptic("light");
+                onOpenHistory?.();
+              }}
+              className="relative h-7 w-7 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-all cursor-pointer bg-transparent text-foreground/80 hover:text-primary hover:bg-black/5 dark:hover:bg-white/10 border-none outline-none"
+              aria-label="Transfer History"
+            >
+              <History className="w-4 h-4 text-primary" />
+            </button>
+
+            <div className="w-[0.5px] h-4 bg-border/60 mx-0.5" />
+
+            {/* Settings Button */}
+            <button
+              onClick={() => {
+                triggerHaptic("light");
+                onOpenSettings?.();
+              }}
+              className="relative h-7 w-7 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-all cursor-pointer bg-transparent text-foreground/80 hover:text-primary hover:bg-black/5 dark:hover:bg-white/10 border-none outline-none"
+              aria-label="Settings"
+            >
+              <Settings className="w-4 h-4 text-primary" />
+            </button>
+          </div>
+        </div>
+      </header>
+    </>
   );
 }

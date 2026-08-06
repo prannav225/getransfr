@@ -49,7 +49,7 @@ declare global {
 }
 
 export function Home() {
-  const { currentDevice, connectedDevices, updateDeviceName, randomizeAvatar } = useDevices();
+  const { currentDevice, connectedDevices, updateDeviceName, randomizeAvatar, refreshDevices, isRefreshing } = useDevices();
   const connectedDevicesRef = useRef(connectedDevices);
   useEffect(() => {
     connectedDevicesRef.current = connectedDevices;
@@ -225,17 +225,10 @@ export function Home() {
       </AnimatePresence>
 
       {/* Main Layout Container */}
-      <div className="relative z-10 h-full w-full flex flex-col bg-background">
-        {/* Header Bar */}
-        <Header
-          activeTab={activeTab}
-          onOpenHistory={() => setIsHistoryOpen(true)}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-        />
-
-        {/* Scrollable Content Layer */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar bg-background">
-          <div className="min-h-full flex flex-col pt-4 pb-28 w-full max-w-4xl mx-auto">
+      <div className="relative z-10 h-full w-full">
+        {/* Scrollable Content Layer — extends full height, behind header */}
+        <div className="h-full overflow-y-auto custom-scrollbar bg-background">
+          <div className="min-h-full flex flex-col pt-14 pb-28 w-full max-w-4xl mx-auto">
             {/* View Container */}
             <div className="flex-1 relative w-full">
               <Suspense
@@ -267,6 +260,8 @@ export function Home() {
                           toast.success("Selection cleared");
                         }}
                         isSending={isSending}
+                        onRefreshDevices={refreshDevices}
+                        isRefreshing={isRefreshing}
                       />
                     ) : (
                       <ReceiveView currentDevice={currentDevice} />
@@ -278,6 +273,13 @@ export function Home() {
           </div>
         </div>
       </div>
+
+      {/* Header — fixed overlay, floats above scrollable content */}
+      <Header
+        activeTab={activeTab}
+        onOpenHistory={() => setIsHistoryOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
 
       {/* Floating Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />

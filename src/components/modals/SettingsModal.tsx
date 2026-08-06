@@ -70,12 +70,12 @@ export function SettingsModal({
                 <img
                   src={avatarUrl}
                   alt={deviceName}
-                  className="w-14 h-14 rounded-2xl object-cover bg-card border border-border/40"
+                  className="w-16 h-16 rounded-2xl object-cover bg-card border border-border/40 shadow-sm"
                 />
                 <button
                   onClick={onRandomizeAvatar}
-                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground shadow-md hover:scale-110 active:scale-95 transition-all"
-                  title="Change Avatar"
+                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#D97757] text-white shadow-md hover:scale-110 active:scale-90 transition-all border-2 border-background"
+                  title="Randomize & Change Avatar"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                 </button>
