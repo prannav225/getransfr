@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Share2, ShieldCheck, HardDrive } from "lucide-react";
+import { X, Share2, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { FileTypeIcon } from "../files/FileTypeIcon";
 import { useHaptics } from "@/hooks/useHaptics";
