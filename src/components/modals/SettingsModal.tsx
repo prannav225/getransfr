@@ -165,7 +165,7 @@ export function SettingsModal({
                   <Smartphone className="w-4 h-4 text-primary" />
                   <span>Getransfr Web & Mobile</span>
                 </div>
-                <span>Version {__APP_VERSION__} (Production)</span>
+                <span>Version {__APP_VERSION__.split('+')[0]} (Production)</span>
               </div>
             </div>
           </div>
