@@ -33,6 +33,7 @@ import { TextTransferModal } from "@/components/modals/TextTransferModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { eventBus, EVENTS } from "@/utils/events";
+import { addToHistory } from "@/utils/history";
 
 declare global {
   interface Window {
@@ -153,13 +154,42 @@ export function Home() {
       });
     };
 
+    const handleTransferComplete = (data: { peerId: string; files: FileMetadata[] }) => {
+      const peer = connectedDevicesRef.current.find((d) => d.socketId === data.peerId);
+      const peerName = peer?.name || "Unknown Device";
+      if (data.files && Array.isArray(data.files)) {
+        data.files.forEach((file) => {
+          addToHistory({
+            fileName: file.name,
+            fileSize: file.size,
+            peerName,
+            isSent: false,
+            mimeType: file.type
+          });
+        });
+      }
+    };
+
     const unsub1 = eventBus.on(EVENTS.FILE_TRANSFER_REQUEST, handleTransferRequest);
     const unsub2 = eventBus.on(EVENTS.TEXT_TRANSFER_REQUEST, handleTextReceived);
+    const unsub3 = eventBus.on(EVENTS.FILE_TRANSFER_COMPLETE, handleTransferComplete);
 
     return () => {
       unsub1();
       unsub2();
+      unsub3();
     };
+  }, []);
+
+  useEffect(() => {
+    const handleHistoryUpdate = () => {
+      try {
+        const saved = localStorage.getItem("transfer_history");
+        if (saved) setTransferHistory(JSON.parse(saved));
+      } catch {}
+    };
+    window.addEventListener("transfer_history_updated", handleHistoryUpdate);
+    return () => window.removeEventListener("transfer_history_updated", handleHistoryUpdate);
   }, []);
 
   return (

@@ -407,7 +407,7 @@ class RTCFileTransferManager {
         console.log(
           `[RTC] All ${metadata.length} files received for ${peerId}`
         );
-        eventBus.emit(EVENTS.FILE_TRANSFER_COMPLETE, { peerId });
+        eventBus.emit(EVENTS.FILE_TRANSFER_COMPLETE, { peerId, files: metadata });
       }
     });
   }

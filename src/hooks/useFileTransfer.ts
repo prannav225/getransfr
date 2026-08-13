@@ -3,6 +3,7 @@ import { Device } from "@/types/device";
 import rtcService from "@/services/rtcService";
 import { useHaptics } from "./useHaptics";
 import { useWakeLock } from "./useWakeLock";
+import { addToHistory } from "@/utils/history";
 
 export function useFileTransfer() {
   const { triggerHaptic } = useHaptics();
@@ -55,6 +56,15 @@ export function useFileTransfer() {
                 setIsSending(false);
                 setCancelTransfer(null);
                 setSelectedFiles([]);
+                files.forEach(file => {
+                  addToHistory({
+                    fileName: file.name,
+                    fileSize: file.size,
+                    peerName: target.name,
+                    isSent: true,
+                    mimeType: file.type
+                  });
+                });
 
                 releaseWakeLock();
               }, 2000);
@@ -67,6 +77,17 @@ export function useFileTransfer() {
               setIsSending(false);
               setCancelTransfer(null);
               setSelectedFiles([]);
+              
+              files.forEach(file => {
+                addToHistory({
+                  fileName: file.name,
+                  fileSize: file.size,
+                  peerName: target.name,
+                  isSent: true,
+                  mimeType: file.type
+                });
+              });
+              
               releaseWakeLock();
             }, 2000);
           },
