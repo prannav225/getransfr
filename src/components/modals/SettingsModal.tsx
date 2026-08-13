@@ -4,6 +4,8 @@ import { Device } from "@/types/device";
 import toast from "react-hot-toast";
 import { Link } from "wouter";
 
+declare const __APP_VERSION__: string;
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -163,7 +165,7 @@ export function SettingsModal({
                   <Smartphone className="w-4 h-4 text-primary" />
                   <span>Getransfr Web & Mobile</span>
                 </div>
-                <span>Version 1.0.0 (Production)</span>
+                <span>Version {__APP_VERSION__} (Production)</span>
               </div>
             </div>
           </div>
