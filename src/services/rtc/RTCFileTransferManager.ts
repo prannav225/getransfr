@@ -63,6 +63,7 @@ class RTCFileTransferManager {
   private ackWaiters: Map<string, { resolve: () => void; threshold: number }> =
     new Map();
   private totalAcked: Map<string, number> = new Map();
+  private lastReceiverUiUpdate: Map<string, number> = new Map();
 
   private static CHUNK_SIZE = 256 * 1024; // 256KB - Optimal for mobile network stacks
   private static BUFFER_THRESHOLD = 4 * 1024 * 1024; // 4MB safe network buffer
@@ -86,6 +87,7 @@ class RTCFileTransferManager {
     const totalSize = files.reduce((acc, f) => acc + f.size, 0);
     this.totalSizes.set(peerId, totalSize);
     this.sentSizes.set(peerId, 0);
+    this.totalAcked.set(peerId, 0);
     this.callbacks.set(peerId, callbacks);
     this.startTime.set(peerId, Date.now());
     console.log(
@@ -105,6 +107,7 @@ class RTCFileTransferManager {
     this.currentFileIndices.set(peerId, 0);
     this.chunks.set(peerId, new Map());
     this.startTime.set(peerId, Date.now());
+    this.lastReceiverUiUpdate.set(peerId, 0);
 
     if (fileSystemHandle) {
       try {
@@ -154,7 +157,8 @@ class RTCFileTransferManager {
           return;
 
         // Flow control balancing Network vs Disk capacity
-        const inFlight = sentOffset - (this.totalAcked.get(peerId) || 0);
+        const totalSentSoFar = batchBase + sentOffset;
+        const inFlight = totalSentSoFar - (this.totalAcked.get(peerId) || 0);
 
         if (
           inFlight > MAX_IN_FLIGHT ||
@@ -346,13 +350,17 @@ class RTCFileTransferManager {
       const elapsed = (now - (this.startTime.get(peerId) || now)) / 1000;
       const speed = receivedNow / (elapsed || 0.001);
 
-      eventBus.emit(EVENTS.FILE_TRANSFER_PROGRESS, {
-        peerId,
-        progress,
-        speed,
-        receivedSize: receivedNow,
-        totalSize: totalBatch,
-      });
+      const lastUpdate = this.lastReceiverUiUpdate.get(peerId) || 0;
+      if (now - lastUpdate > 100 || progress === 100) {
+        eventBus.emit(EVENTS.FILE_TRANSFER_PROGRESS, {
+          peerId,
+          progress,
+          speed,
+          receivedSize: receivedNow,
+          totalSize: totalBatch,
+        });
+        this.lastReceiverUiUpdate.set(peerId, now);
+      }
     });
   }
 
@@ -420,6 +428,7 @@ class RTCFileTransferManager {
     this.ackWaiters.delete(peerId);
     this.totalAcked.delete(peerId);
     this.startTime.delete(peerId);
+    this.lastReceiverUiUpdate.delete(peerId);
   }
 }
 
