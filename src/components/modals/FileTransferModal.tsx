@@ -118,8 +118,7 @@ export function FileTransferModal({
             {/* Summary Bar */}
             <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-t border-white/10">
               <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-primary/70">
-                <HardDrive className="w-3.5 h-3.5" />
-                Total Payload
+                Total Size
               </div>
               <span className="text-sm font-bold text-primary">
                 {totalSize}

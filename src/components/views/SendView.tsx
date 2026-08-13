@@ -60,7 +60,7 @@ export function SendView({
         </div>
       </div>
 
-      {/* STEP 1: Select Payload Banner & Dropzone */}
+      {/* STEP 1: Select Files Banner & Dropzone */}
       <div className="w-full space-y-4">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">

@@ -140,7 +140,7 @@ export function FileUpload({
         
         <div className="flex flex-col min-w-0">
           <p className="text-[16px] font-bold text-foreground truncate">
-            {hasFiles ? `${selectedFiles.length} File(s) Selected` : "Select Payload"}
+            {hasFiles ? `${selectedFiles.length} File(s) Selected` : "Select Files to Send"}
           </p>
           <p className="text-[12px] text-muted-foreground truncate">
             {hasFiles ? formattedSize : "Tap to choose photos, videos, or files"}

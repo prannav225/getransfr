@@ -94,7 +94,7 @@ export function PrivacyPolicy() {
               </h1>
 
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-normal">
-                Getransfr is engineered from the ground up for absolute local privacy. Your files, text payloads, and transfers never touch or sit on central cloud servers.
+                Getransfr is engineered from the ground up for absolute local privacy. Your files, text snippets, and transfers never touch or sit on central cloud servers.
               </p>
 
               <div className="pt-2 flex items-center gap-4 text-xs text-muted-foreground font-semibold">
@@ -147,7 +147,7 @@ export function PrivacyPolicy() {
             </div>
 
             <p className="text-xs text-muted-foreground leading-relaxed pl-1">
-              Signaling servers are used exclusively to facilitate initial WebRTC handshake discovery. Once connected, all data flows directly peer-to-peer over your local network or WebRTC channel with 0% server payload retention.
+              Signaling servers are used exclusively to facilitate initial WebRTC handshake discovery. Once connected, all data flows directly peer-to-peer over your local network or WebRTC channel with 0% server data retention.
             </p>
           </div>
 
@@ -194,7 +194,7 @@ export function PrivacyPolicy() {
                 <h3>Infrastructure & Analytics</h3>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                We host static client files on Vercel with minimal service health monitoring. These hosting providers have zero access or visibility into payload content being transferred.
+                We host static client files on Vercel with minimal service health monitoring. These hosting providers have zero access or visibility into file content being transferred.
               </p>
             </div>
           </div>

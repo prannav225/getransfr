@@ -54,14 +54,7 @@ export function useFileTransfer() {
               setTimeout(() => {
                 setIsSending(false);
                 setCancelTransfer(null);
-                setSelectedFiles([]); // Clear selection on success? Or just leave it?
-                // If we are sending clipboard files, we probably shouldn't clear selectedFiles if they were separate.
-                // But startTransfer doesn't know if it's clipboard or not.
-                // Compatibility: handleSendFiles clears selectedFiles.
-                // We will move setSelectedFiles([]) to handleSendFiles's onComplete logic if possible, OR just clear it here safely.
-                // If files !== selectedFiles, maybe don't clear selectedFiles?
-                // Let's assume clear is fine for now or check equality.
-                if (files === selectedFiles) setSelectedFiles([]);
+                setSelectedFiles([]);
 
                 releaseWakeLock();
               }, 2000);
@@ -73,7 +66,7 @@ export function useFileTransfer() {
             setTimeout(() => {
               setIsSending(false);
               setCancelTransfer(null);
-              if (files === selectedFiles) setSelectedFiles([]);
+              setSelectedFiles([]);
               releaseWakeLock();
             }, 2000);
           },
