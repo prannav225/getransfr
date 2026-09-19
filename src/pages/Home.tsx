@@ -59,6 +59,7 @@ export function Home() {
   const { shareText, retrieveClipboard } = useClipboard();
   const {
     selectedFiles,
+    isLoadingFiles,
     handleFileSelect,
     handleSendFiles,
     isSending,
@@ -282,6 +283,7 @@ export function Home() {
                         handleSendFiles={handleSendFiles}
                         onClipboardClick={handleClipboardClick}
                         selectedFiles={selectedFiles}
+                        isLoadingFiles={isLoadingFiles}
                         handleFileSelect={handleFileSelect}
                         handleFileRemove={handleFileRemove}
                         onClearAll={() => {

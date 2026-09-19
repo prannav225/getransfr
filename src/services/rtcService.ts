@@ -43,6 +43,7 @@ class RTCService {
 
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        await this.connectionManager.drainPendingIceCandidates(from);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket.emit("rtc-answer", { to: from, answer });
@@ -57,6 +58,7 @@ class RTCService {
       if (pc) {
         try {
           await pc.setRemoteDescription(new RTCSessionDescription(answer));
+          await this.connectionManager.drainPendingIceCandidates(from);
         } catch (err) {
           console.error("[RTCService] Error handling answer:", err);
         }
@@ -64,14 +66,7 @@ class RTCService {
     });
 
     socket.on("rtc-ice-candidate", async ({ from, candidate }) => {
-      const pc = this.connectionManager.getPeerConnection(from);
-      if (pc) {
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (err) {
-          console.error("[RTCService] Error adding ICE candidate:", err);
-        }
-      }
+      await this.connectionManager.addIceCandidate(from, candidate);
     });
   }
 
@@ -235,6 +230,15 @@ class RTCService {
     });
     dataChannel.bufferedAmountLowThreshold = 4 * 1024 * 1024;
     this.setupDataChannel(peerId, dataChannel);
+
+    // Explicitly create and dispatch the offer to ensure negotiation is never stalled
+    try {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socket.emit("rtc-offer", { to: peerId, offer });
+    } catch (err) {
+      console.error("[RTCService] Failed to create initial offer:", err);
+    }
 
     return () => this.cancelTransfer(peerId);
   }

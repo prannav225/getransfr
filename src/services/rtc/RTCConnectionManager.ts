@@ -16,6 +16,7 @@ interface RTCIceCandidateStats extends RTCStats {
 
 class RTCConnectionManager {
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
+  private pendingCandidates: Map<string, RTCIceCandidateInit[]> = new Map();
   private socket: Socket;
 
   constructor(socket: Socket) {
@@ -84,10 +85,9 @@ class RTCConnectionManager {
     };
 
     pc.onnegotiationneeded = async () => {
-      console.log(`[RTC] Negotiation needed for ${peerId}`);
+      console.log(`[RTC] Negotiation needed for ${peerId} (signalingState: ${pc.signalingState})`);
+      if (pc.signalingState !== "stable") return;
       try {
-        // Determine if we need restart based on state?
-        // Usually just creating offer is enough, the browser internal state handles the rest.
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         this.socket.emit("rtc-offer", { to: peerId, offer });
@@ -170,6 +170,39 @@ class RTCConnectionManager {
     }
   }
 
+  async addIceCandidate(peerId: string, candidate: RTCIceCandidateInit): Promise<void> {
+    const pc = this.peerConnections.get(peerId);
+    if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error(`[RTC] Error adding ICE candidate for ${peerId}:`, err);
+      }
+    } else {
+      if (!this.pendingCandidates.has(peerId)) {
+        this.pendingCandidates.set(peerId, []);
+      }
+      this.pendingCandidates.get(peerId)!.push(candidate);
+      console.log(`[RTC] Buffered ICE candidate for ${peerId} (queue length: ${this.pendingCandidates.get(peerId)!.length})`);
+    }
+  }
+
+  async drainPendingIceCandidates(peerId: string): Promise<void> {
+    const pc = this.peerConnections.get(peerId);
+    const candidates = this.pendingCandidates.get(peerId);
+    if (pc && candidates && candidates.length > 0) {
+      this.pendingCandidates.delete(peerId);
+      console.log(`[RTC] Draining ${candidates.length} buffered ICE candidates for ${peerId}`);
+      for (const candidate of candidates) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.error(`[RTC] Error applying buffered ICE candidate for ${peerId}:`, err);
+        }
+      }
+    }
+  }
+
   getPeerConnection(peerId: string): RTCPeerConnection | undefined {
     return this.peerConnections.get(peerId);
   }
@@ -181,6 +214,7 @@ class RTCConnectionManager {
       peerConnection.close();
       this.peerConnections.delete(peerId);
       this.connectionTypes.delete(peerId);
+      this.pendingCandidates.delete(peerId);
     }
   }
 }

@@ -8,6 +8,7 @@ import { addToHistory } from "@/utils/history";
 export function useFileTransfer() {
   const { triggerHaptic } = useHaptics();
   const { requestWakeLock, releaseWakeLock } = useWakeLock();
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
@@ -21,13 +22,21 @@ export function useFileTransfer() {
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const files = Array.from(event.target.files);
-      if (!validateFiles(files)) {
-        return;
-      }
-      setSelectedFiles(files);
+    if (event.target.files && event.target.files.length > 0) {
+      const fileList = event.target.files;
+      setIsLoadingFiles(true);
       triggerHaptic("light");
+
+      setTimeout(() => {
+        try {
+          const files = Array.from(fileList);
+          if (validateFiles(files)) {
+            setSelectedFiles(files);
+          }
+        } finally {
+          setIsLoadingFiles(false);
+        }
+      }, 50);
     }
   };
 
@@ -129,6 +138,8 @@ export function useFileTransfer() {
 
   return {
     selectedFiles,
+    isLoadingFiles,
+    setIsLoadingFiles,
     handleFileSelect,
     handleSendFiles,
     isSending,

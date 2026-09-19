@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 
 interface SendViewProps {
   selectedFiles: File[];
+  isLoadingFiles?: boolean;
   handleFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleFileRemove: (index: number) => void;
   onClearAll: () => void;
@@ -20,6 +21,7 @@ interface SendViewProps {
 
 export function SendView({
   selectedFiles,
+  isLoadingFiles = false,
   handleFileSelect,
   handleFileRemove,
   onClearAll,
@@ -73,6 +75,7 @@ export function SendView({
         <div className="w-full">
           <FileUpload
             selectedFiles={selectedFiles}
+            isLoading={isLoadingFiles}
             onFileSelect={handleFileSelect}
             onFileRemove={handleFileRemove}
             onClearAll={onClearAll}

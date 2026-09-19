@@ -6,6 +6,8 @@ import { useDevices } from "@/hooks/useDevices";
 import { Link } from "wouter";
 import { ArrowLeft, ShieldCheck, Lock, Radio, Server, CheckCircle2, HardDrive, Mail } from "lucide-react";
 
+declare const __APP_VERSION__: string;
+
 export function PrivacyPolicy() {
   const { currentDevice, updateDeviceName, randomizeAvatar } = useDevices();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -100,7 +102,7 @@ export function PrivacyPolicy() {
               <div className="pt-2 flex items-center gap-4 text-xs text-muted-foreground font-semibold">
                 <span>Effective Date: August 2026</span>
                 <span>•</span>
-                <span>Version 1.0.0</span>
+                <span>Version {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__.split('+')[0] : '1.0.2'}</span>
               </div>
             </div>
           </div>
